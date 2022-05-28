@@ -1,6 +1,6 @@
-# three-seed
+# bubbles 
 
-seed project for threejs dev
+bubble on threejs
 
 set up according to webpack tutorials here:
 * https://webpack.js.org/guides/getting-started/
