@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { Shape, Vector2, Vector3 } from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { setQuaternionFromProperEuler } from 'three/src/math/MathUtils';
 
 // init
@@ -9,8 +10,21 @@ scene.background = new THREE.Color(0x8FBCD4);
 const camera = new THREE.PerspectiveCamera(
   70, window.innerWidth / window.innerHeight, 0.01, 300
 );
+camera.position.x = 50;
+camera.position.y = -90;
 camera.position.z = 150;
+camera.lookAt (new Vector3(0,0,0));
 scene.add(camera);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true })
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(window.innerWidth, window.innerHeight)
+renderer.setAnimationLoop(animation)
+document.body.appendChild(renderer.domElement)
+
+const controls = new OrbitControls( camera, renderer.domElement );
+controls.autoRotate = true;
+controls.enablePan = false;
 
 ////example shape
 // const heartShape = new THREE.Shape();
@@ -22,43 +36,53 @@ scene.add(camera);
 // heartShape.bezierCurveTo( 80, 35, 80, 0, 50, 0 );
 // heartShape.bezierCurveTo( 35, 0, 25, 25, 25, 25 );
 
-////example rect 
-// var pts = [
-// 	new THREE.Vector3(-2, 0, -2),
-// 	new THREE.Vector3(0, 0, -2),
-// 	new THREE.Vector3(0, 0, 0),
-//   new THREE.Vector3(-2, 0, 0)
-// ];
-// var ptsShape = pts.map( p => {return new THREE.Vector2(p.x, -p.z)}); //QUESTION
-// // console.log(ptsShape);
-// var rect = new THREE.Shape(ptsShape);
-
-//example circle 
-// const circleShape = new THREE.Shape();
-// circleShape.absarc(0,0,10,0,Math.PI*2,true);
-// const mesh = ExtrudeRoundCorner(circleShape);
-// scene.add(mesh);
-
+//todo make a class 
 //x,y,r instead of xyz
 let seedPoints: Array<Vector3>;
 seedPoints = [
   new THREE.Vector3(0,0,12),
   new THREE.Vector3(15,10,5),
-  new THREE.Vector3(-10,-5,8),
+  new THREE.Vector3(-27,5,8),
 ];
 
+
 //QUESTION
-var cShape = new THREE.Shape();
-for( let i = 0; i < seedPoints.length; i++){
-  cShape.moveTo(seedPoints[i].x,seedPoints[i].y);
-  cShape.absarc(seedPoints[i].x,seedPoints[i].y,seedPoints[i].z,0,Math.PI*2,true);
-  scene.add(ExtrudeRoundCorner(cShape));
+/*
+?extra arcs 
+? extra lines
+1.a. how to best structure the bubble class? 
+  seed, bubble, layer freeze 
+  editing: move the seeds , change elasticity, amount 
+  b. three js: calculate mesh and render 
+2. typescript-fy code? 
+
+*/
+
+
+
+//go through seeds and add extruded circles 
+let cShape: Shape = new THREE.Shape()
+var mesh = new THREE.Mesh()
+var scale 
+var totalStep =5; 
+for (let step: number =0; step < totalStep; step++ ){
+  scale = 1 - step*.1; 
+  for( let i: number = 0; i < seedPoints.length; i++){
+    // cShape.moveTo(seedPoints[i].x,seedPoints[i].y);
+    // console.log(step,i)
+    cShape.absarc(seedPoints[i].x,seedPoints[i].y,seedPoints[i].z*scale,0,Math.PI*2,true);
+    mesh =ExtrudeRoundCorner(cShape);
+    mesh.position.z= step*-7;
+    scene.add(mesh);
+    
+  }
+  
 }
 
 function ExtrudeRoundCorner(_shape:Shape ) {
 
   const extrudeSettings = {
-    steps: 2,
+    steps: 1,
     depth: 0,
     bevelEnabled: true,
     bevelThickness: 1,
@@ -69,18 +93,12 @@ function ExtrudeRoundCorner(_shape:Shape ) {
 
   const geometry = new THREE.ExtrudeGeometry(_shape, extrudeSettings);
   const material = new THREE.MeshNormalMaterial();
-  const mesh = new THREE.Mesh(geometry, material);
-  return mesh;
+
+  return  new THREE.Mesh(geometry, material);;
 }
 
 const axesHelper = new THREE.AxesHelper( 10 );
 scene.add( axesHelper );
-
-const renderer = new THREE.WebGLRenderer({ antialias: true })
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight)
-renderer.setAnimationLoop(animation)
-document.body.appendChild(renderer.domElement)
 
 window.addEventListener('resize', onWindowResize);
 
