@@ -60,13 +60,14 @@ class MetaSquare{
   seeds: Array<BubbleSeed>
   constructor( _seeds: Array<BubbleSeed> ){
     this.cellNum = 40
-    this.cellSize = 2
+    this.cellSize = 1
     this.cells = [...Array(this.cellNum+1)].map(e => Array(this.cellNum+1).fill(0))
     this.seeds = _seeds 
-
-   
   }
 
+  /*
+  reference http://jamie-wong.com/2014/08/19/metaballs-and-marching-squares/ 
+  */
   calculate():void{
     let x1: number, y1: number, x2: number, y2: number;
     for (var y:number = 0; y < this.cellNum +1; y++){
@@ -89,7 +90,7 @@ class MetaSquare{
           case 0:
             break;
           case 1:
-          case 14:
+          case 14: 
             x1 = c.x;
             y1 = c.y + this.cellSize * ((1.0 - this.cells[x][y]) / (this.cells[x][y + 1] -this.cells[x][y]));
             x2 = c.x +this.cellSize * ((1.0 -this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] -this.cells[x][y + 1]));
@@ -188,9 +189,11 @@ class MetaSquare{
 //setup 
 let bubbleSeeds: Array<BubbleSeed>
 bubbleSeeds = [
-  new BubbleSeed(15,30,2),
+  new BubbleSeed(15,30,1.4),
   new BubbleSeed(25,20),
-  new BubbleSeed(16,20,4),
+  new BubbleSeed(16,20,2),
+  new BubbleSeed(6,5,3),
+  new BubbleSeed(4,15,1),
 ];
 
 let metaSquare = new MetaSquare(bubbleSeeds) 
