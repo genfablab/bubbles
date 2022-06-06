@@ -65,13 +65,12 @@ class MetaSquare {
 
   constructor(_seeds: Array<BubbleSeed>) {
     //100 1 
-    this.cellNum = 40
+    this.cellNum = 30
     this.cellSize = 2
     this.cells = [...Array(this.cellNum + 1)].map(e => Array(this.cellNum + 1).fill(0))
     this.seeds = _seeds
-    this.threshold = 0.95
+    this.threshold = 0.9
     this.segments = []
-    // this.vertices=  []//new Array<THREE.Vector2>()
   }
 
   calculate(): void {
@@ -181,7 +180,7 @@ class MetaSquare {
     //draw on scene
     const points = [new THREE.Vector2(x1, y1), new THREE.Vector2(x2, y2)]
     scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMaterialSeg))
-    console.log("added segments", this.segments.length)
+    // console.log("added segments", this.segments.length)
   }
 
   drawSegments():void{
@@ -197,43 +196,83 @@ class MetaSquare {
   }
   drawLine(): void {
     console.log("total segements", this.segments.length)
-
-    let vertices: number[][] = []
-    for (let s of this.segments) {
-      const pointA = s[0] //[x,y]
-      const pointB = s[1]
-      const indexA = this.getIndexOf(vertices, pointA)
-      const indexB = this.getIndexOf(vertices, pointB)
-      
-      if (indexA > -1 && indexB > -1) //last link in the chain ??
-      {
-        console.log("A ", indexA, pointA, ". B ", indexB, pointB)  
-      }
-      else if (indexA > -1) { //A is found , B is not 
-        if (indexA == 0) { //A exist as the first point in the array 
-          vertices.unshift(pointB)
-        } else {
-          //A is the last point. Just add B to the last
-          vertices.push(pointB)
-        }
-      }
-      else if (indexB > -1) {//A is not yet in the array, B is 
-        if (indexB == 0) {
-          //add A to the first
-          vertices.unshift(pointA)
-        }
-        else {
-          //add A to the last
-          vertices.push(pointA)
-        }
-      }
-      else {
-        //A and B are both new. Add both points.
-        //happens at the beginning of each loop
-        vertices.push(pointA)
-        vertices.push(pointB)
-      }
+    
+    if(this.segments.length <3){
+      return; 
     }
+    
+    let vertices: number[][] = []
+    let tail: number[] = [] //coordinate of the last vertex
+    // sort through the segements 
+  
+    while(this.segments.length>0){
+      if (vertices.length ==0 ){ 
+        //put down the first two vertices
+        vertices.push(this.segments[0][0])
+        vertices.push(this.segments[0][1])
+        tail = vertices[vertices.length-1]
+        this.segments.shift(); //remove the segment that's added
+      }else{
+        for (const { index, s } of this.segments.map((s, index) => ({ index, s }))) {
+          const pointA = s[0] //[x,y]
+          const pointB = s[1]
+          if (pointA.toString == tail.toString){
+            //add B to the end 
+            vertices.push(pointB)
+            tail = pointB
+            console.log("segment " , index, s, "tail", tail)
+            this.segments.splice(index,1) //remove one item
+            break
+          }
+          else if(pointB.toString==tail.toString){
+            //add A to the end
+            vertices.push(pointA)
+            tail = pointA 
+            this.segments.splice(index,1)  
+            break 
+          }
+          // console.log("current segements", this.segments.length)
+        }
+      }
+      
+    
+      // const pointA = s[0] //[x,y]
+      // const pointB = s[1]
+      // const indexA = this.getIndexOf(vertices, pointA)
+      // const indexB = this.getIndexOf(vertices, pointB)
+      
+      // if (indexA > -1 && indexB > -1) //link two loose ends together
+      // {
+      //   if(indexA == 0 )
+      // }
+      // else if (indexA > -1) { //A is found , B is not 
+      //   if (indexA == 0) { //A exist as the first point in the array 
+      //     vertices.unshift(pointB)
+      //   } else {
+      //     //A is the last point. Just add B to the last
+      //     vertices.push(pointB)
+      //   }
+      // }
+      // else if (indexB > -1) {//A is not yet in the array, B is 
+      //   if (indexB == 0) {
+      //     //add A to the first
+      //     vertices.unshift(pointA)
+      //   }
+      //   else {
+      //     //add A to the last
+      //     vertices.push(pointA)
+      //   }
+      // }
+      // else {
+      //   //A and B are both new. Add both points.
+      //   //happens at the beginning of each loop
+      //   vertices.push(pointA)
+      //   vertices.push(pointB)
+      // }
+    }
+
+
+    //all vertices added
     console.log("total vertices", vertices.length)
     const points = []
     // add the points to a closed contour 
