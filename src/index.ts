@@ -26,6 +26,11 @@ const controls = new OrbitControls( camera, renderer.domElement );
 controls.autoRotate = false;
 controls.enablePan = true;
 
+const lineMaterial = new THREE.LineBasicMaterial({
+  color: 0x0000ff
+});
+
+
 ////example shape
 // const heartShape = new THREE.Shape();
 // heartShape.moveTo( 25, 25 );
@@ -53,23 +58,29 @@ class BubbleSeed {
   }
 }
 
+  /*
+  explanation http://jamie-wong.com/2014/08/19/metaballs-and-marching-squares/ 
+  implementation https://openprocessing.org/sketch/375385 
+  */
 class MetaSquare{
   cellNum:number
   cellSize:number
   cells: number[][]
   seeds: Array<BubbleSeed>
   threshold:number 
+  segments: THREE.Vector2[][]
+  vertices: Array<THREE.Vector2>
+
   constructor( _seeds: Array<BubbleSeed> ){
-    this.cellNum = 40
-    this.cellSize = 1
+    this.cellNum = 30
+    this.cellSize = 3
     this.cells = [...Array(this.cellNum+1)].map(e => Array(this.cellNum+1).fill(0))
     this.seeds = _seeds 
     this.threshold = 1.01
+    this.segments = new Array<THREE.Vector2[]>()
+    this.vertices=  new Array<THREE.Vector2>()
   }
 
-  /*
-  reference http://jamie-wong.com/2014/08/19/metaballs-and-marching-squares/ 
-  */
   calculate():void{
     let x1: number, y1: number, x2: number, y2: number;
     for (var y:number = 0; y < this.cellNum +1; y++){
@@ -97,7 +108,7 @@ class MetaSquare{
             y1 = c.y + this.cellSize * ((this.threshold- this.cells[x][y]) / (this.cells[x][y + 1] -this.cells[x][y]));
             x2 = c.x +this.cellSize * ((this.threshold-this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] -this.cells[x][y + 1]));
             y2 = c.y +this.cellSize;
-             this.line(x1, y1, x2, y2);
+             this.addSegment(x1, y1, x2, y2);
             break;
           case 2:
           case 13:
@@ -105,7 +116,7 @@ class MetaSquare{
             y1 = c.y +this.cellSize * ((this.threshold-this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
             x2 = c.x + this.cellSize * ((this.threshold- this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]));
             y2 = c.y + this.cellSize;
-             this.line(x1, y1, x2, y2);  
+             this.addSegment(x1, y1, x2, y2);  
             break;
           case 3:
           case 12:
@@ -113,7 +124,7 @@ class MetaSquare{
             y1 = c.y + this.cellSize * ((this.threshold- this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]));
             x2 = c.x + this.cellSize;
             y2 = c.y + this.cellSize * ((this.threshold- this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
-             this.line(x1, y1, x2, y2);  
+             this.addSegment(x1, y1, x2, y2);  
             break;
           case 4:
           case 11:
@@ -121,19 +132,19 @@ class MetaSquare{
             y1 = c.y;
             x2 = c.x + this.cellSize;
             y2 = c.y + this.cellSize * ((this.threshold- this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
-             this.line(x1, y1, x2, y2);  
+             this.addSegment(x1, y1, x2, y2);  
             break;
           case 5:
             x1 = c.x + this.cellSize * ((this.threshold- this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]));
             y1 = c.y;
             x2 = c.x;
             y2 = c.y + this.cellSize * ((this.threshold- this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]));
-             this.line(x1, y1, x2, y2);  
+             this.addSegment(x1, y1, x2, y2);  
             x1 = c.x + this.cellSize;
             y1 = c.y + this.cellSize * ((this.threshold- this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
             x2 = c.x + this.cellSize * ((this.threshold- this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]));
             y2 = c.y + this.cellSize;
-             this.line(x1, y1, x2, y2);  
+             this.addSegment(x1, y1, x2, y2);  
             break;
           case 6:
           case 9:
@@ -141,7 +152,7 @@ class MetaSquare{
             y1 = c.y;
             x2 = c.x + this.cellSize * ((this.threshold- this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]));
             y2 = c.y + this.cellSize;
-             this.line(x1, y1, x2, y2);  
+             this.addSegment(x1, y1, x2, y2);  
             break;
           case 7:
           case 8:
@@ -149,19 +160,19 @@ class MetaSquare{
             y1 = c.y;
             x2 = c.x;
             y2 = c.y + this.cellSize * ((this.threshold- this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]));
-             this.line(x1, y1, x2, y2);  
+             this.addSegment(x1, y1, x2, y2);  
             break;    
           case 10:
             x1 = c.x + this.cellSize * ((this.threshold- this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]));
             y1 = c.y;
             x2 = c.x + this.cellSize;
             y2 = c.y + this.cellSize * ((this.threshold- this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
-             this.line(x1, y1, x2, y2);  
+             this.addSegment(x1, y1, x2, y2);  
             x1 = c.x;
             y1 = c.y + this.cellSize * ((this.threshold- this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]));
             x2 = c.x + this.cellSize * ((this.threshold- this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]));
             y2 = c.y + this.cellSize;
-            this.line(x1, y1, x2, y2);
+            this.addSegment(x1, y1, x2, y2);
             break;
           case 15:
             break;      
@@ -170,19 +181,67 @@ class MetaSquare{
     }
   }
 
-  line(x1:number,y1:number,x2:number, y2:number ):void{
-    const material = new THREE.LineBasicMaterial({
-      color: 0x0000ff
-    });
-    
-    const points = [];
-    points.push( new THREE.Vector3(x1,y1) );
-    points.push( new THREE.Vector3( x2,y2 ) );
-    
-    const geometry = new THREE.BufferGeometry().setFromPoints( points );  
-    const line = new THREE.Line( geometry, material );
-    scene.add( line );
+  addSegment(x1:number,y1:number,x2:number, y2:number ):void{
 
+    const points = [new THREE.Vector2(x1,y1), new THREE.Vector2(x2,y2)]
+    this.segments.push(points)
+
+  }
+
+  drawLine():void{
+  
+    // const pointA = new THREE.Vector2(1,10)
+    // const pointB = new THREE.Vector2(1,10)
+    // this.vertices.push(pointA)
+
+    // console.log(this.vertices.includes(pointA)) //true 
+    // console.log(this.vertices.includes(pointB)) //false 
+
+    console.log("total segements", this.segments.length)
+    for (let s of this.segments){
+      const pointA:THREE.Vector2 = s[0]
+      const pointB:THREE.Vector2 = s[1]
+      if (this.vertices.includes(pointA)&&this.vertices.includes(pointB))
+      {
+        // add the points to a closed contour 
+        for (let v of this.vertices){
+          
+        }
+        //delete the vertices that are added 
+
+        break;
+      }
+      else if( this.vertices.includes(pointA)){
+        //A is the first point in the array
+        if(this.vertices.indexOf(pointA)==0){
+          this.vertices.unshift(pointB)
+        }else{
+          //A is the last point. Just add B to the last
+          this.vertices.push(pointB)
+        }
+        //todo: check for end of loop?
+
+      }else if(this.vertices.includes(pointB)){//A is not yet in the array, try look for B 
+          if(this.vertices.indexOf(pointB)==0){
+            //add A to the last
+            this.vertices.push(pointA)
+          }
+          else{
+            //add A to the first
+            this.vertices.unshift(pointA)
+          }
+        }
+        else{
+          //A and B are both new. Add both points.
+          this.vertices.push(pointA)
+          this.vertices.push(pointB)
+        }
+    }
+    console.log("total vertices", this.vertices.length)
+    
+    const geometry = new THREE.BufferGeometry().setFromPoints( this.vertices );  
+    const line = new THREE.Line( geometry, lineMaterial );
+    scene.add( line );
   }
   update():void{ 
 
@@ -200,6 +259,7 @@ bubbleSeeds = [
 
 let metaSquare = new MetaSquare(bubbleSeeds) 
 metaSquare.calculate()
+metaSquare.drawLine()
 
 //go through seeds and add extruded circles 
 let cShape: Shape = new THREE.Shape()
