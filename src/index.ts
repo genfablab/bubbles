@@ -46,10 +46,30 @@ class BubbleSeed {
   }
 
   get size(): number {
-    return this.r;
+    return this.r
   }
 }
 
+class Loop{
+  vertices: number[][]
+  tail: string 
+  isClosed: boolean
+  constructor(){
+    this.vertices =[]
+    this.isClosed = false 
+  }
+  addVertex( newPoint:number[]){
+    this.vertices.push(newPoint)
+    this.tail = newPoint.toString() 
+    if (this.vertices.length > 2 && this.tail == this.vertices[0].toString()){
+      console.log("loop closed")
+      this.isClosed = true 
+    }
+  }
+  tailMatches( newPoint: number[]): boolean{
+    return (newPoint.toString()== this.tail)
+  }
+}
 /*
 explanation http://jamie-wong.com/2014/08/19/metaballs-and-marching-squares/ 
 implementation https://openprocessing.org/sketch/375385 
@@ -61,20 +81,22 @@ class MetaSquare {
   seeds: Array<BubbleSeed>
   threshold: number
   segments: number[][][]
+  loops: Array<Loop>
   // vertices: Array<THREE.Vector2>
 
   constructor(_seeds: Array<BubbleSeed>) {
     //100 1 
-    this.cellNum = 30
-    this.cellSize = 2
+    this.cellNum = 90
+    this.cellSize = 0.5
     this.cells = [...Array(this.cellNum + 1)].map(e => Array(this.cellNum + 1).fill(0))
     this.seeds = _seeds
     this.threshold = 0.9
     this.segments = []
+    this.loops = []
   }
 
-  calculate(): void {
-    let x1: number, y1: number, x2: number, y2: number;
+  calculateSegments(): void {
+    let x1: number, y1: number, x2: number, y2: number
     for (var y: number = 0; y < this.cellNum + 1; y++) {
       for (var x: number = 0; x < this.cellNum + 1; x++) {
         for (let s of this.seeds) {
@@ -88,93 +110,92 @@ class MetaSquare {
         let state: number = (this.cells[x][y + 1] >= this.threshold ? 1 : 0)
           + Math.pow(this.cells[x + 1][y + 1] >= this.threshold ? 2 : 0, 1)
           + Math.pow(this.cells[x + 1][y] >= this.threshold ? 2 : 0, 2)
-          + Math.pow(this.cells[x][y] >= this.threshold ? 2 : 0, 3);
+          + Math.pow(this.cells[x][y] >= this.threshold ? 2 : 0, 3)
         // console.log(x,y,state)
         let c: THREE.Vector2 = new THREE.Vector2(this.cellSize * x, this.cellSize * y)
         switch (state) {
           case 0:
-            break;
+            break
           case 1:
           case 14:
-            x1 = c.x;
-            y1 = c.y + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]));
-            x2 = c.x + this.cellSize * ((this.threshold - this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]));
-            y2 = c.y + this.cellSize;
-            this.addSegment(x1, y1, x2, y2);
-            break;
+            x1 = c.x
+            y1 = c.y + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]))
+            x2 = c.x + this.cellSize * ((this.threshold - this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]))
+            y2 = c.y + this.cellSize
+            this.addSegment(x1, y1, x2, y2)
+            break
           case 2:
           case 13:
-            x1 = c.x + this.cellSize;
-            y1 = c.y + this.cellSize * ((this.threshold - this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
-            x2 = c.x + this.cellSize * ((this.threshold - this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]));
-            y2 = c.y + this.cellSize;
-            this.addSegment(x1, y1, x2, y2);
-            break;
+            x1 = c.x + this.cellSize
+            y1 = c.y + this.cellSize * ((this.threshold - this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]))
+            x2 = c.x + this.cellSize * ((this.threshold - this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]))
+            y2 = c.y + this.cellSize
+            this.addSegment(x1, y1, x2, y2)
+            break
           case 3:
           case 12:
-            x1 = c.x;
-            y1 = c.y + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]));
-            x2 = c.x + this.cellSize;
-            y2 = c.y + this.cellSize * ((this.threshold - this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
-            this.addSegment(x1, y1, x2, y2);
-            break;
+            x1 = c.x
+            y1 = c.y + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]))
+            x2 = c.x + this.cellSize
+            y2 = c.y + this.cellSize * ((this.threshold - this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]))
+            this.addSegment(x1, y1, x2, y2)
+            break
           case 4:
           case 11:
-            x1 = c.x + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]));
-            y1 = c.y;
-            x2 = c.x + this.cellSize;
-            y2 = c.y + this.cellSize * ((this.threshold - this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
-            this.addSegment(x1, y1, x2, y2);
-            break;
+            x1 = c.x + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]))
+            y1 = c.y
+            x2 = c.x + this.cellSize
+            y2 = c.y + this.cellSize * ((this.threshold - this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]))
+            this.addSegment(x1, y1, x2, y2)
+            break
           case 5:
-            x1 = c.x + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]));
-            y1 = c.y;
-            x2 = c.x;
-            y2 = c.y + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]));
-            this.addSegment(x1, y1, x2, y2);
-            x1 = c.x + this.cellSize;
-            y1 = c.y + this.cellSize * ((this.threshold - this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
-            x2 = c.x + this.cellSize * ((this.threshold - this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]));
-            y2 = c.y + this.cellSize;
-            this.addSegment(x1, y1, x2, y2);
-            break;
+            x1 = c.x + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]))
+            y1 = c.y
+            x2 = c.x
+            y2 = c.y + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]))
+            this.addSegment(x1, y1, x2, y2)
+            x1 = c.x + this.cellSize
+            y1 = c.y + this.cellSize * ((this.threshold - this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]))
+            x2 = c.x + this.cellSize * ((this.threshold - this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]))
+            y2 = c.y + this.cellSize
+            this.addSegment(x1, y1, x2, y2)
+            break
           case 6:
           case 9:
-            x1 = c.x + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]));
-            y1 = c.y;
-            x2 = c.x + this.cellSize * ((this.threshold - this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]));
-            y2 = c.y + this.cellSize;
-            this.addSegment(x1, y1, x2, y2);
-            break;
+            x1 = c.x + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]))
+            y1 = c.y
+            x2 = c.x + this.cellSize * ((this.threshold - this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]))
+            y2 = c.y + this.cellSize
+            this.addSegment(x1, y1, x2, y2)
+            break
           case 7:
           case 8:
-            x1 = c.x + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]));
-            y1 = c.y;
-            x2 = c.x;
-            y2 = c.y + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]));
-            this.addSegment(x1, y1, x2, y2);
-            break;
+            x1 = c.x + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]))
+            y1 = c.y
+            x2 = c.x
+            y2 = c.y + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]))
+            this.addSegment(x1, y1, x2, y2)
+            break
           case 10:
-            x1 = c.x + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]));
-            y1 = c.y;
-            x2 = c.x + this.cellSize;
-            y2 = c.y + this.cellSize * ((this.threshold - this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
-            this.addSegment(x1, y1, x2, y2);
-            x1 = c.x;
-            y1 = c.y + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]));
-            x2 = c.x + this.cellSize * ((this.threshold - this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]));
-            y2 = c.y + this.cellSize;
-            this.addSegment(x1, y1, x2, y2);
-            break;
+            x1 = c.x + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]))
+            y1 = c.y
+            x2 = c.x + this.cellSize
+            y2 = c.y + this.cellSize * ((this.threshold - this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]))
+            this.addSegment(x1, y1, x2, y2)
+            x1 = c.x
+            y1 = c.y + this.cellSize * ((this.threshold - this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]))
+            x2 = c.x + this.cellSize * ((this.threshold - this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]))
+            y2 = c.y + this.cellSize
+            this.addSegment(x1, y1, x2, y2)
+            break
           case 15:
-            break;
+            break
         }
       }
     }
   }
-
   addSegment(x1: number, y1: number, x2: number, y2: number): void {
-
+    //short straight lines
     const seg = [[x1, y1], [x2, y2]]
     this.segments.push(seg)
     //draw on scene
@@ -182,108 +203,57 @@ class MetaSquare {
     scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMaterialSeg))
     // console.log("added segments", this.segments.length)
   }
-
-  drawSegments():void{
-
-    // const points = []
-    // for (let s of this.segments){
-    //   console.log(s)
-    //   points.push(new THREE.Vector3( s[0][0],s[0][1], 4));
-    //   points.push(new THREE.Vector3( s[1][0],s[1][1], 4));
-    // }
-    // scene.add( new THREE.Line(new THREE.BufferGeometry().setFromPoints( points ), lineMaterialSeg ) )
-
-  }
-  drawLine(): void {
+  drawLoops(): void {
     console.log("total segements", this.segments.length)
     
     if(this.segments.length <3){
-      return; 
+      return 
     }
-    
-    let vertices: number[][] = []
-    let tail: number[] = [] //coordinate of the last vertex
-    // sort through the segements 
-  
-    while(this.segments.length>0){
-      if (vertices.length ==0 ){ 
-        //put down the first two vertices
-        vertices.push(this.segments[0][0]) //same as the last one 
-        vertices.push(this.segments[0][1])
-        tail = vertices[vertices.length-1]
+
+    var loop = new Loop() 
+    // while(this.segments.length>0){
+      if(loop.vertices.length == 0){ //new loop. add the first available segment
+        console.log('new loop')
+        //put down the first two loop
+        loop.addVertex(this.segments[0][0]) //head , same as the tail when loop is finished 
+        loop.addVertex(this.segments[0][1])
         this.segments.shift(); //remove the segment that's added
-      }else{
+      }
+      //go through the segments to add to this new loop 
+      //TODO assuming all loops are closed 
+      while (!loop.isClosed){
         for (const { index, s } of this.segments.map((s, index) => ({ index, s }))) {
           const pointA = s[0] //[x,y]
           const pointB = s[1]
-          if (pointA.toString() == tail.toString()){
-            //add B to the end 
-            vertices.push(pointB)
-            tail = pointB
+          if(loop.tailMatches(pointA)){//add B to the end 
+            loop.addVertex(pointB)
             this.segments.splice(index,1) //remove one item
             break
           }
-          else if(pointB.toString()==tail.toString()){
-            //add A to the end
-            vertices.push(pointA)
-            tail = pointA 
-            this.segments.splice(index,1)  
-            break 
+          else if(loop.tailMatches(pointB)){//add B to the end 
+            loop.addVertex(pointA)
+            this.segments.splice(index,1) //remove one item
+            break
           }
-          
-          // console.log("current segements", this.segments.length)
         }
+        console.log(loop.vertices)
       }
-      
-    
-      // const pointA = s[0] //[x,y]
-      // const pointB = s[1]
-      // const indexA = this.getIndexOf(vertices, pointA)
-      // const indexB = this.getIndexOf(vertices, pointB)
-      
-      // if (indexA > -1 && indexB > -1) //link two loose ends together
-      // {
-      //   if(indexA == 0 )
-      // }
-      // else if (indexA > -1) { //A is found , B is not 
-      //   if (indexA == 0) { //A exist as the first point in the array 
-      //     vertices.unshift(pointB)
-      //   } else {
-      //     //A is the last point. Just add B to the last
-      //     vertices.push(pointB)
-      //   }
-      // }
-      // else if (indexB > -1) {//A is not yet in the array, B is 
-      //   if (indexB == 0) {
-      //     //add A to the first
-      //     vertices.unshift(pointA)
-      //   }
-      //   else {
-      //     //add A to the last
-      //     vertices.push(pointA)
-      //   }
-      // }
-      // else {
-      //   //A and B are both new. Add both points.
-      //   //happens at the beginning of each loop
-      //   vertices.push(pointA)
-      //   vertices.push(pointB)
-      // }
-    }
-
+      this.loops.push(loop)
 
     //all vertices added
-    console.log("total vertices", vertices.length)
-    const points = []
-    // add the points to a closed contour 
-    for (let v of vertices) {
-      points.push(new THREE.Vector3(v[0], v[1], -4));
+    console.log("total loops", this.loops.length)
+    // // add the points to a closed contour 
+    for (let l of this.loops){
+      const points = []
+      for (let v of l.vertices) {  
+        points.push(new THREE.Vector3(v[0], v[1], -4))
+      }
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const line = new THREE.Line(geometry, lineMaterial);
+      scene.add(line);
     }
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const line = new THREE.Line(geometry, lineMaterial);
-    scene.add(line);
-
-    //delete the vertices that are added? 
+    
+    
   }
 
   //return index of the first obj in arr. -1 if not found
@@ -307,15 +277,14 @@ let bubbleSeeds: Array<BubbleSeed>
 bubbleSeeds = [
   new BubbleSeed(15, 30, 1.4),
   new BubbleSeed(25, 20),
-  new BubbleSeed(16, 20, 2),
-  // new BubbleSeed(6,5,3),
-  // new BubbleSeed(4,15,1),
+  new BubbleSeed(16, 27, .6),
+  new BubbleSeed(6,8,3),
+
 ];
 
 let metaSquare = new MetaSquare(bubbleSeeds)
-metaSquare.calculate()
-metaSquare.drawSegments()
-metaSquare.drawLine()
+metaSquare.calculateSegments()
+metaSquare.drawLoops()
 
 //go through seeds and add extruded circles 
 let cShape: THREE.Shape
