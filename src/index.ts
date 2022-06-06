@@ -26,20 +26,12 @@ const controls = new OrbitControls( camera, renderer.domElement );
 controls.autoRotate = false;
 controls.enablePan = true;
 
+const lineMaterialSeg = new THREE.LineBasicMaterial({
+  color: 0xff0000
+});
 const lineMaterial = new THREE.LineBasicMaterial({
   color: 0x0000ff
 });
-
-
-////example shape
-// const heartShape = new THREE.Shape();
-// heartShape.moveTo( 25, 25 );
-// heartShape.bezierCurveTo( 25, 25, 20, 0, 0, 0 );
-// heartShape.bezierCurveTo( - 30, 0, - 30, 35, - 30, 35 );
-// heartShape.bezierCurveTo( - 30, 55, - 10, 77, 25, 95 );
-// heartShape.bezierCurveTo( 60, 77, 80, 55, 80, 35 );
-// heartShape.bezierCurveTo( 80, 35, 80, 0, 50, 0 );
-// heartShape.bezierCurveTo( 35, 0, 25, 25, 25, 25 );
 
 class BubbleSeed {
   x: number;
@@ -68,17 +60,17 @@ class MetaSquare{
   cells: number[][]
   seeds: Array<BubbleSeed>
   threshold:number 
-  segments: THREE.Vector2[][]
-  vertices: Array<THREE.Vector2>
+  segments: number[][][]
+  // vertices: Array<THREE.Vector2>
 
   constructor( _seeds: Array<BubbleSeed> ){
-    this.cellNum = 30
-    this.cellSize = 3
+    this.cellNum = 100
+    this.cellSize = 1
     this.cells = [...Array(this.cellNum+1)].map(e => Array(this.cellNum+1).fill(0))
     this.seeds = _seeds 
     this.threshold = 1.01
-    this.segments = new Array<THREE.Vector2[]>()
-    this.vertices=  new Array<THREE.Vector2>()
+    this.segments = []
+    // this.vertices=  []//new Array<THREE.Vector2>()
   }
 
   calculate():void{
@@ -183,67 +175,87 @@ class MetaSquare{
 
   addSegment(x1:number,y1:number,x2:number, y2:number ):void{
 
-    const points = [new THREE.Vector2(x1,y1), new THREE.Vector2(x2,y2)]
-    this.segments.push(points)
-
+    // const points = [new THREE.Vector2(x1,y1), new THREE.Vector2(x2,y2)]
+    const seg = [[x1,y1],[x2,y2]]
+    this.segments.push(seg)
   }
 
-  drawLine():void{
-  
-    // const pointA = new THREE.Vector2(1,10)
-    // const pointB = new THREE.Vector2(1,10)
-    // this.vertices.push(pointA)
-
-    // console.log(this.vertices.includes(pointA)) //true 
-    // console.log(this.vertices.includes(pointB)) //false 
-
-    console.log("total segements", this.segments.length)
+  drawSegments():void{
+    
+    const points = []
     for (let s of this.segments){
-      const pointA:THREE.Vector2 = s[0]
-      const pointB:THREE.Vector2 = s[1]
-      if (this.vertices.includes(pointA)&&this.vertices.includes(pointB))
-      {
-        // add the points to a closed contour 
-        for (let v of this.vertices){
-          
-        }
-        //delete the vertices that are added 
+      points.push(new THREE.Vector3( s[0][0],s[0][1], 4));
+      points.push(new THREE.Vector3( s[1][0],s[1][1], 4));
+    }
+    const geometry = new THREE.BufferGeometry().setFromPoints( points );  
+    const line = new THREE.Line( geometry, lineMaterialSeg );
+    scene.add( line );
 
-        break;
+  }
+  drawLine():void{
+    console.log("total segements", this.segments.length)
+    
+    let vertices: number[][] = []
+    for (let s of this.segments){
+      const pointA = s[0]
+      const pointB = s[1]
+      const indexA = this.getIndexOf(vertices,pointA)
+      const indexB = this.getIndexOf(vertices,pointB)
+      console.log("A ", indexA, ". B ", indexB)
+      if (indexA>-1 && indexB>-1) //last link in the chain ??
+      {
+        
       }
-      else if( this.vertices.includes(pointA)){
-        //A is the first point in the array
-        if(this.vertices.indexOf(pointA)==0){
-          this.vertices.unshift(pointB)
+      else if( indexA>-1){ //A is found , B is not 
+        if(indexA==0){ //A exist as the first point in the array 
+          vertices.unshift(pointB)
         }else{
           //A is the last point. Just add B to the last
-          this.vertices.push(pointB)
+          vertices.push(pointB)
         }
-        //todo: check for end of loop?
-
-      }else if(this.vertices.includes(pointB)){//A is not yet in the array, try look for B 
-          if(this.vertices.indexOf(pointB)==0){
-            //add A to the last
-            this.vertices.push(pointA)
-          }
-          else{
+      }
+      else if(indexB>-1){//A is not yet in the array, try look for B 
+          if(indexB==0){
             //add A to the first
-            this.vertices.unshift(pointA)
+            vertices.unshift(pointA)
+          }
+          else{ 
+            //add A to the last
+            vertices.push(pointA)
           }
         }
-        else{
-          //A and B are both new. Add both points.
-          this.vertices.push(pointA)
-          this.vertices.push(pointB)
-        }
+      else{
+        //A and B are both new. Add both points.
+        vertices.push(pointA)
+        vertices.push(pointB)
+      }
     }
-    console.log("total vertices", this.vertices.length)
+    console.log("total vertices", vertices.length)
+        const points = []
+        // add the points to a closed contour 
+        for (let v of vertices){
+          points.push(new THREE.Vector3( v[0],v[1],-4));
+        }
+        const geometry = new THREE.BufferGeometry().setFromPoints( points );  
+        const line = new THREE.Line( geometry, lineMaterial );
+        scene.add( line );
     
-    const geometry = new THREE.BufferGeometry().setFromPoints( this.vertices );  
-    const line = new THREE.Line( geometry, lineMaterial );
-    scene.add( line );
+        //delete the vertices that are added? 
   }
-  update():void{ 
+
+  //return index of the first obj in arr. -1 if not found
+  getIndexOf(arr:number[][], obj:number[] ):number {
+	for (const { index, a } of arr.map((a, index) => ({ index, a }))) {
+	    if (a[0]==obj[0] && a[1]==obj[1]){
+	   	// console.log(a[0],a[1],obj[0],obj[1] )
+	   	return index 
+	   }
+	}
+	return -1
+}
+
+
+update():void{ 
 
   }
 }
@@ -253,12 +265,13 @@ bubbleSeeds = [
   new BubbleSeed(15,30,1.4),
   new BubbleSeed(25,20),
   new BubbleSeed(16,20,2),
-  new BubbleSeed(6,5,3),
-  new BubbleSeed(4,15,1),
+  // new BubbleSeed(6,5,3),
+  // new BubbleSeed(4,15,1),
 ];
 
 let metaSquare = new MetaSquare(bubbleSeeds) 
 metaSquare.calculate()
+metaSquare.drawSegments()
 metaSquare.drawLine()
 
 //go through seeds and add extruded circles 
