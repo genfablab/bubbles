@@ -211,34 +211,44 @@ class MetaSquare {
  while(this.segments.length>0){
       var loop = new Loop() 
       //go through the segments to add to this new loop 
-      //TODO assuming all loops are closed. otherwise stuck in the while loop. 
       while (!loop.isClosed){
+        let newPointAdded:boolean = false; 
         for (const { index, s } of this.segments.map((s, index) => ({ index, s }))) {
           const pointA = s[0] //[x,y]
           const pointB = s[1]
-        
+          
           if(loop.vertices.length == 0){
             console.log('begin a new loop')
             //put down the first two loop
             loop.addVertex(this.segments[0][0]) //head , same as the tail when loop is finished 
             loop.addVertex(this.segments[0][1])
-            this.segments.shift(); //remove the segment that's added
+            this.segments.shift() //remove the segment that's added
+            newPointAdded = true
             break
           }
           else if(loop.tailMatches(pointA)){//add B to the end 
             loop.addVertex(pointB)
             this.segments.splice(index,1) //remove one item
+            newPointAdded = true 
             break
           }
           else if(loop.tailMatches(pointB)){//add B to the end 
             loop.addVertex(pointA)
             this.segments.splice(index,1) //remove one item
+            newPointAdded = true 
             break
           }
         }
-        // console.log(loop.vertices)
+        //after going through all segements, no match was found 
+        if(!newPointAdded){    
+            console.log("Loop left open")
+            break
+        }
       }
-      this.loops.push(loop)
+      if(loop.isClosed){ //only add closed contours
+        this.loops.push(loop)
+      }
+      
       
     }
     //all vertices added
