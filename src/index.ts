@@ -58,11 +58,13 @@ class MetaSquare{
   cellSize:number
   cells: number[][]
   seeds: Array<BubbleSeed>
+  threshold:number 
   constructor( _seeds: Array<BubbleSeed> ){
     this.cellNum = 40
     this.cellSize = 1
     this.cells = [...Array(this.cellNum+1)].map(e => Array(this.cellNum+1).fill(0))
     this.seeds = _seeds 
+    this.threshold = 1.01
   }
 
   /*
@@ -80,10 +82,10 @@ class MetaSquare{
 
     for (var y:number = 0; y < this.cellNum; y++){
       for(var x:number = 0; x < this.cellNum; x++){
-        let state:number =  (this.cells[x][y + 1] >= 1 ? 1: 0)
-        + Math.pow(this.cells[x + 1][y + 1] >= 1 ? 2: 0, 1)
-        + Math.pow(this.cells[x + 1][y] >= 1 ? 2: 0, 2)
-        + Math.pow(this.cells[x][y] >= 1 ? 2: 0, 3);
+        let state:number =  (this.cells[x][y + 1] >= this.threshold ? 1: 0)
+        + Math.pow(this.cells[x + 1][y + 1] >= this.threshold ? 2: 0, 1)
+        + Math.pow(this.cells[x + 1][y] >= this.threshold ? 2: 0, 2)
+        + Math.pow(this.cells[x][y] >= this.threshold ? 2: 0, 3);
         // console.log(x,y,state)
         let c:THREE.Vector2 = new THREE.Vector2(this.cellSize * x, this.cellSize * y)
         switch(state){
@@ -92,72 +94,72 @@ class MetaSquare{
           case 1:
           case 14: 
             x1 = c.x;
-            y1 = c.y + this.cellSize * ((1.0 - this.cells[x][y]) / (this.cells[x][y + 1] -this.cells[x][y]));
-            x2 = c.x +this.cellSize * ((1.0 -this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] -this.cells[x][y + 1]));
+            y1 = c.y + this.cellSize * ((this.threshold- this.cells[x][y]) / (this.cells[x][y + 1] -this.cells[x][y]));
+            x2 = c.x +this.cellSize * ((this.threshold-this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] -this.cells[x][y + 1]));
             y2 = c.y +this.cellSize;
              this.line(x1, y1, x2, y2);
             break;
           case 2:
           case 13:
             x1 = c.x +this.cellSize;
-            y1 = c.y +this.cellSize * ((1.0 -this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
-            x2 = c.x + this.cellSize * ((1.0 - this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]));
+            y1 = c.y +this.cellSize * ((this.threshold-this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
+            x2 = c.x + this.cellSize * ((this.threshold- this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]));
             y2 = c.y + this.cellSize;
              this.line(x1, y1, x2, y2);  
             break;
           case 3:
           case 12:
             x1 = c.x;
-            y1 = c.y + this.cellSize * ((1.0 - this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]));
+            y1 = c.y + this.cellSize * ((this.threshold- this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]));
             x2 = c.x + this.cellSize;
-            y2 = c.y + this.cellSize * ((1.0 - this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
+            y2 = c.y + this.cellSize * ((this.threshold- this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
              this.line(x1, y1, x2, y2);  
             break;
           case 4:
           case 11:
-            x1 = c.x + this.cellSize * ((1.0 - this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]));
+            x1 = c.x + this.cellSize * ((this.threshold- this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]));
             y1 = c.y;
             x2 = c.x + this.cellSize;
-            y2 = c.y + this.cellSize * ((1.0 - this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
+            y2 = c.y + this.cellSize * ((this.threshold- this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
              this.line(x1, y1, x2, y2);  
             break;
           case 5:
-            x1 = c.x + this.cellSize * ((1.0 - this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]));
+            x1 = c.x + this.cellSize * ((this.threshold- this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]));
             y1 = c.y;
             x2 = c.x;
-            y2 = c.y + this.cellSize * ((1.0 - this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]));
+            y2 = c.y + this.cellSize * ((this.threshold- this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]));
              this.line(x1, y1, x2, y2);  
             x1 = c.x + this.cellSize;
-            y1 = c.y + this.cellSize * ((1.0 - this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
-            x2 = c.x + this.cellSize * ((1.0 - this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]));
+            y1 = c.y + this.cellSize * ((this.threshold- this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
+            x2 = c.x + this.cellSize * ((this.threshold- this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]));
             y2 = c.y + this.cellSize;
              this.line(x1, y1, x2, y2);  
             break;
           case 6:
           case 9:
-            x1 = c.x + this.cellSize * ((1.0 - this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]));
+            x1 = c.x + this.cellSize * ((this.threshold- this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]));
             y1 = c.y;
-            x2 = c.x + this.cellSize * ((1.0 - this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]));
+            x2 = c.x + this.cellSize * ((this.threshold- this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]));
             y2 = c.y + this.cellSize;
              this.line(x1, y1, x2, y2);  
             break;
           case 7:
           case 8:
-            x1 = c.x + this.cellSize * ((1.0 - this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]));
+            x1 = c.x + this.cellSize * ((this.threshold- this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]));
             y1 = c.y;
             x2 = c.x;
-            y2 = c.y + this.cellSize * ((1.0 - this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]));
+            y2 = c.y + this.cellSize * ((this.threshold- this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]));
              this.line(x1, y1, x2, y2);  
             break;    
           case 10:
-            x1 = c.x + this.cellSize * ((1.0 - this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]));
+            x1 = c.x + this.cellSize * ((this.threshold- this.cells[x][y]) / (this.cells[x + 1][y] - this.cells[x][y]));
             y1 = c.y;
             x2 = c.x + this.cellSize;
-            y2 = c.y + this.cellSize * ((1.0 - this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
+            y2 = c.y + this.cellSize * ((this.threshold- this.cells[x + 1][y]) / (this.cells[x + 1][y + 1] - this.cells[x + 1][y]));
              this.line(x1, y1, x2, y2);  
             x1 = c.x;
-            y1 = c.y + this.cellSize * ((1.0 - this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]));
-            x2 = c.x + this.cellSize * ((1.0 - this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]));
+            y1 = c.y + this.cellSize * ((this.threshold- this.cells[x][y]) / (this.cells[x][y + 1] - this.cells[x][y]));
+            x2 = c.x + this.cellSize * ((this.threshold- this.cells[x][y + 1]) / (this.cells[x + 1][y + 1] - this.cells[x][y + 1]));
             y2 = c.y + this.cellSize;
             this.line(x1, y1, x2, y2);
             break;
