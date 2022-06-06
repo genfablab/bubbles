@@ -208,7 +208,7 @@ class MetaSquare {
     while(this.segments.length>0){
       if (vertices.length ==0 ){ 
         //put down the first two vertices
-        vertices.push(this.segments[0][0])
+        vertices.push(this.segments[0][0]) //same as the last one 
         vertices.push(this.segments[0][1])
         tail = vertices[vertices.length-1]
         this.segments.shift(); //remove the segment that's added
@@ -216,21 +216,21 @@ class MetaSquare {
         for (const { index, s } of this.segments.map((s, index) => ({ index, s }))) {
           const pointA = s[0] //[x,y]
           const pointB = s[1]
-          if (pointA.toString == tail.toString){
+          if (pointA.toString() == tail.toString()){
             //add B to the end 
             vertices.push(pointB)
             tail = pointB
-            console.log("segment " , index, s, "tail", tail)
             this.segments.splice(index,1) //remove one item
             break
           }
-          else if(pointB.toString==tail.toString){
+          else if(pointB.toString()==tail.toString()){
             //add A to the end
             vertices.push(pointA)
             tail = pointA 
             this.segments.splice(index,1)  
             break 
           }
+          
           // console.log("current segements", this.segments.length)
         }
       }
