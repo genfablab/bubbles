@@ -83,7 +83,7 @@ class MetaSquare {
 
   constructor(_seeds: Array<BubbleSeed>) {
     //100 1 
-    this.cellNum = 180
+    this.cellNum = 280
     this.cellSize = 0.5
     this.cells = [...Array(this.cellNum + 1)].map(e => Array(this.cellNum + 1).fill(0))
     this.seeds = _seeds
@@ -302,13 +302,14 @@ bubbleSeeds = [
   new BubbleSeed(15, 30),
   new BubbleSeed(25, 31, 3),
   new BubbleSeed(12, 22, 1.6),
+  new BubbleSeed(12, 12, 1.6),
   new BubbleSeed(16, 8, 1),
   new BubbleSeed(32, 12, 1),
-  new BubbleSeed(40, 18, 7),
+  new BubbleSeed(40, 18, 3),
 ];
-
-var totalStep = 4
-var eachStep = 1.9
+//4 1.9
+var totalStep = 7
+var eachStep = 0.9
 var z = 0
 var scale
 let cShape: THREE.Shape
@@ -317,7 +318,7 @@ let newSeeds:BubbleSeed[]
 for (let step: number = 0; step < totalStep; step++) {
   newSeeds=[]
   z += eachStep
-  scale = 1 + step * .1
+  scale = 1 + step * 0.12* Math.random()
   for (let b of bubbleSeeds){
     newSeeds.push( new BubbleSeed(b.x, b.y, b.r*scale))
   }
@@ -342,8 +343,8 @@ function extrudeRoundCorner(_shape: Shape) {
     steps: 1,
     depth: 0,
     bevelEnabled: true,
-    bevelThickness: 0.2,
-    bevelSize: 0.2,
+    bevelThickness: 0.18,
+    bevelSize: 0.18,
     bevelOffset: 0,
     bevelSegments: 7  //smooth curved extrusion
   };
