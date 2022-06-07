@@ -52,6 +52,7 @@ class Loop {
   vertices: number[][]
   tail: string
   isClosed: boolean
+  loopShape: THREE.Shape 
   constructor() {
     this.vertices = []
     this.isClosed = false
@@ -60,8 +61,20 @@ class Loop {
     this.vertices.push(newPoint)
     this.tail = newPoint.toString()
     if (this.vertices.length > 2 && this.tail == this.vertices[0].toString()) {
-      console.log("loop closed")
+      // console.log("loop closed")
       this.isClosed = true
+      this.gen2DShape()
+    }
+  }
+  gen2DShape():void{
+    if (!this.isClosed ||  this.vertices.length<3){
+      console.error("cannot generate THREE Shape")
+      return
+    }
+    this.loopShape = new THREE.Shape()
+    this.loopShape.moveTo(this.vertices[0][0],this.vertices[0][1])
+    for (let v of this.vertices) {
+      this.loopShape.lineTo(v[0], v[1])
     }
   }
   tailMatches(newPoint: number[]): boolean {
@@ -89,7 +102,7 @@ class MetaSquare {
     this.cellSize = 0.5
     this.cells = [...Array(this.cellNum + 1)].map(e => Array(this.cellNum + 1).fill(0))
     this.seeds = _seeds
-    this.threshold = 1 //default
+    this.threshold = 1.6 //default
     this.segments = []
     this.loops = []
 
@@ -202,7 +215,7 @@ class MetaSquare {
     // scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMaterialSeg))
   }
   calculateLoops(): void {
-    console.log("total segements", this.segments.length)
+    // console.log("total segements", this.segments.length)
     if (this.segments.length < 3) {
       return
     }
@@ -216,7 +229,7 @@ class MetaSquare {
           const pointB = s[1]
 
           if (loop.vertices.length == 0) {
-            console.log('begin a new loop')
+            // console.log('begin a new loop')
             //put down the first two loop
             loop.addVertex(this.segments[0][0]) //head , same as the tail when loop is finished 
             loop.addVertex(this.segments[0][1])
@@ -245,46 +258,26 @@ class MetaSquare {
       // if (loop.isClosed) { //only add closed contours
       this.loops.push(loop)
       // }
-
-
     }
     //all vertices added
-    console.log("total loops", this.loops.length)
-    // // add the points to a closed contour 
-  }
-
-  //return index of the first obj in arr. -1 if not found
-  getIndexOf(arr: number[][], obj: number[]): number {
-    for (const { index, a } of arr.map((a, index) => ({ index, a }))) {
-      if (a[0] == obj[0] && a[1] == obj[1]) {
-        // console.log(a[0],a[1],obj[0],obj[1] )
-        return index
-      }
-    }
-    return -1
+    // console.log("total loops", this.loops.length)    
   }
 
   drawSeeds(): void {
     //go through seeds and add extruded circles 
     let cShape: THREE.Shape
     let mesh: THREE.Mesh
-    // var scale
-    // var totalStep = 4
-    // var eachStep = 2
-    // for (let step: number = 0; step < totalStep; step++) {
-    // scale = 1 + step * .1;
+
     for (let i: number = 0; i < this.seeds.length; i++) {
       cShape = new THREE.Shape()
       cShape.absarc(bubbleSeeds[i].x, this.seeds[i].y, this.seeds[i].r, 0, Math.PI * 2, true);
       mesh = extrudeRoundCorner(cShape);
-      // mesh.position.z = step * eachStep;
       mesh.position.z = 0;
       scene.add(mesh);
     }
 
-    // }
   }
-  drawWiredLoops() {
+  drawWiredLoops():void {
     for (let l of this.loops) {
       const points = []
       for (let v of l.vertices) {
@@ -295,32 +288,12 @@ class MetaSquare {
       scene.add(line);
     }
   }
-  
-  drawLoops():void{
-    let cShape: THREE.Shape
-    let mesh: THREE.Mesh
-    for (let l of this.loops) {
-      cShape = new THREE.Shape()
-      for (let v of l.vertices){
-        cShape.lineTo(v[0],v[1])
-      }
-      mesh = extrudeRoundCorner(cShape); 
-      mesh.position.z = -3
-      scene.add(mesh)
-    }
-  }
 
   update(): void {
     this.calculateSegments()
     this.calculateLoops()
   }
 
-  draw(): void {
-    this.drawSeeds()
-    // this.drawWiredLoops()
-    this.drawLoops()
-
-  }
 }
 
 //setup---------------------------------------------------------------- 
@@ -334,12 +307,35 @@ bubbleSeeds = [
   new BubbleSeed(40, 18, 7),
 ];
 
-const metaSquare = new MetaSquare(bubbleSeeds)
-metaSquare.threshold = 1.3 //smaller => blobbier 
-metaSquare.update()
-metaSquare.draw()
+var totalStep = 4
+var eachStep = 2
+var z = 0
+var scale
+let cShape: THREE.Shape
+let mesh: THREE.Mesh
+let newSeeds = []
+for (let step: number = 0; step < totalStep; step++) {
+  z += eachStep
+//   scale = 1 + step * .1
+//   for (let b of bubbleSeeds){
+//     newSeeds.push( new BubbleSeed(b.x, b.y, b.r*scale))
+//   }
+  // const metaSquare = new MetaSquare(newSeeds)
+  const metaSquare = new MetaSquare(bubbleSeeds)
+  // metaSquare.threshold = 1.6 //smaller => blobbier 
+  metaSquare.update()
+  for (let l of metaSquare.loops) {
+    if (l.isClosed) { //only extrude closed loops
+      mesh = extrudeRoundCorner(l.loopShape);
+      mesh.position.z = z
+      scene.add(mesh)
+    }
+  }
+}
 
 
+
+//helpers---------------------------------------------------------------- 
 function extrudeRoundCorner(_shape: Shape) {
   const extrudeSettings = {
     steps: 1,
