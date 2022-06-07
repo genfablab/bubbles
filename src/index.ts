@@ -34,14 +34,14 @@ const lineMaterial = new THREE.LineBasicMaterial({
 });
 
 class BubbleSeed {
-  x: number;
-  y: number;
-  r: number;
+  x: number
+  y: number
+  r: number
   pos: THREE.Vector2
   constructor(x: number, y: number, r = 5) {
     this.x = x
     this.y = y
-    this.r = r;
+    this.r = r
     this.pos = new THREE.Vector2(x, y)
   }
 
@@ -50,24 +50,24 @@ class BubbleSeed {
   }
 }
 
-class Loop{
+class Loop {
   vertices: number[][]
-  tail: string 
+  tail: string
   isClosed: boolean
-  constructor(){
-    this.vertices =[]
-    this.isClosed = false 
+  constructor() {
+    this.vertices = []
+    this.isClosed = false
   }
-  addVertex( newPoint:number[]){
+  addVertex(newPoint: number[]) {
     this.vertices.push(newPoint)
-    this.tail = newPoint.toString() 
-    if (this.vertices.length > 2 && this.tail == this.vertices[0].toString()){
+    this.tail = newPoint.toString()
+    if (this.vertices.length > 2 && this.tail == this.vertices[0].toString()) {
       console.log("loop closed")
-      this.isClosed = true 
+      this.isClosed = true
     }
   }
-  tailMatches( newPoint: number[]): boolean{
-    return (newPoint.toString()== this.tail)
+  tailMatches(newPoint: number[]): boolean {
+    return (newPoint.toString() == this.tail)
   }
 }
 /*
@@ -86,7 +86,7 @@ class MetaSquare {
 
   constructor(_seeds: Array<BubbleSeed>) {
     //100 1 
-    this.cellNum = 90
+    this.cellNum = 180
     this.cellSize = 0.5
     this.cells = [...Array(this.cellNum + 1)].map(e => Array(this.cellNum + 1).fill(0))
     this.seeds = _seeds
@@ -111,7 +111,6 @@ class MetaSquare {
           + Math.pow(this.cells[x + 1][y + 1] >= this.threshold ? 2 : 0, 1)
           + Math.pow(this.cells[x + 1][y] >= this.threshold ? 2 : 0, 2)
           + Math.pow(this.cells[x][y] >= this.threshold ? 2 : 0, 3)
-        // console.log(x,y,state)
         let c: THREE.Vector2 = new THREE.Vector2(this.cellSize * x, this.cellSize * y)
         switch (state) {
           case 0:
@@ -198,26 +197,25 @@ class MetaSquare {
     //short straight lines
     const seg = [[x1, y1], [x2, y2]]
     this.segments.push(seg)
-    //draw on scene
-    const points = [new THREE.Vector2(x1, y1), new THREE.Vector2(x2, y2)]
-    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMaterialSeg))
-    // console.log("added segments", this.segments.length)
+    // // DEBUGGING draw segments on scene
+    // const points = [new THREE.Vector2(x1, y1), new THREE.Vector2(x2, y2)]
+    // scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMaterialSeg))
   }
-  drawLoops(): void {
+  calculateLoops(): void {
     console.log("total segements", this.segments.length)
-    if(this.segments.length <3){
-      return 
+    if (this.segments.length < 3) {
+      return
     }
- while(this.segments.length>0){
-      var loop = new Loop() 
+    while (this.segments.length > 0) {
+      var loop = new Loop()
       //go through the segments to add to this new loop 
-      while (!loop.isClosed){
-        let newPointAdded:boolean = false; 
+      while (!loop.isClosed) {
+        let newPointAdded: boolean = false;
         for (const { index, s } of this.segments.map((s, index) => ({ index, s }))) {
           const pointA = s[0] //[x,y]
           const pointB = s[1]
-          
-          if(loop.vertices.length == 0){
+
+          if (loop.vertices.length == 0) {
             console.log('begin a new loop')
             //put down the first two loop
             loop.addVertex(this.segments[0][0]) //head , same as the tail when loop is finished 
@@ -226,47 +224,36 @@ class MetaSquare {
             newPointAdded = true
             break
           }
-          else if(loop.tailMatches(pointA)){//add B to the end 
+          else if (loop.tailMatches(pointA)) {//add B to the end 
             loop.addVertex(pointB)
-            this.segments.splice(index,1) //remove one item
-            newPointAdded = true 
+            this.segments.splice(index, 1) //remove one item
+            newPointAdded = true
             break
           }
-          else if(loop.tailMatches(pointB)){//add B to the end 
+          else if (loop.tailMatches(pointB)) {//add B to the end 
             loop.addVertex(pointA)
-            this.segments.splice(index,1) //remove one item
-            newPointAdded = true 
+            this.segments.splice(index, 1) //remove one item
+            newPointAdded = true
             break
           }
         }
         //after going through all segements, no match was found 
-        if(!newPointAdded){    
-            console.log("Loop left open")
-            break
+        if (!newPointAdded) {
+          console.log("Loop left open")
+          break
         }
       }
-      if(loop.isClosed){ //only add closed contours
+      // if (loop.isClosed) { //only add closed contours
         this.loops.push(loop)
-      }
-      
-      
+      // }
+
+
     }
     //all vertices added
     console.log("total loops", this.loops.length)
     // // add the points to a closed contour 
-    for (let l of this.loops){
-      const points = []
-      for (let v of l.vertices) {  
-        points.push(new THREE.Vector3(v[0], v[1], -4))
-      }
-      const geometry = new THREE.BufferGeometry().setFromPoints(points);
-      const line = new THREE.Line(geometry, lineMaterial);
-      scene.add(line);
-    }
-    
-    
   }
-
+  
   //return index of the first obj in arr. -1 if not found
   getIndexOf(arr: number[][], obj: number[]): number {
     for (const { index, a } of arr.map((a, index) => ({ index, a }))) {
@@ -278,24 +265,39 @@ class MetaSquare {
     return -1
   }
 
-
-  update(): void {
+  drawLoops(){
+    for (let l of this.loops) {
+      const points = []
+      for (let v of l.vertices) {
+        points.push(new THREE.Vector3(v[0], v[1], -4))
+      }
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const line = new THREE.Line(geometry, lineMaterial);
+      scene.add(line);
+    }
 
   }
+  update(): void {
+    this.calculateSegments()
+    this.calculateLoops()
+  }
+  
 }
+
 //setup 
 let bubbleSeeds: Array<BubbleSeed>
 bubbleSeeds = [
   new BubbleSeed(15, 30, 1.4),
   new BubbleSeed(25, 20),
   new BubbleSeed(16, 27, .6),
-  new BubbleSeed(6,8,3),
-
+  new BubbleSeed(6, 8, 3),
+  new BubbleSeed(45, 12, 7),
 ];
 
 let metaSquare = new MetaSquare(bubbleSeeds)
-metaSquare.calculateSegments()
+metaSquare.update()
 metaSquare.drawLoops()
+
 
 //go through seeds and add extruded circles 
 let cShape: THREE.Shape
