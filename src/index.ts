@@ -10,7 +10,7 @@ scene.background = new THREE.Color(0x8FBCD4);
 const camera = new THREE.PerspectiveCamera(
   70, window.innerWidth / window.innerHeight, 0.01, 200
 );
-camera.position.x = 0;
+camera.position.x = 5;
 camera.position.y = 0;
 camera.position.z = 80;
 camera.lookAt(new Vector3(0, 0, 0));
@@ -45,9 +45,7 @@ class BubbleSeed {
     this.pos = new THREE.Vector2(x, y)
   }
 
-  get size(): number {
-    return this.r
-  }
+
 }
 
 class Loop {
@@ -82,6 +80,7 @@ class MetaSquare {
   threshold: number
   segments: number[][][]
   loops: Array<Loop>
+  z: number
   // vertices: Array<THREE.Vector2>
 
   constructor(_seeds: Array<BubbleSeed>) {
@@ -90,9 +89,10 @@ class MetaSquare {
     this.cellSize = 0.5
     this.cells = [...Array(this.cellNum + 1)].map(e => Array(this.cellNum + 1).fill(0))
     this.seeds = _seeds
-    this.threshold = 0.9
+    this.threshold = 1 //default
     this.segments = []
     this.loops = []
+
   }
 
   calculateSegments(): void {
@@ -237,14 +237,13 @@ class MetaSquare {
             break
           }
         }
-        //after going through all segements, no match was found 
-        if (!newPointAdded) {
+        if (!newPointAdded) { //after going through all segements, no match was found 
           console.log("Loop left open")
           break
         }
       }
       // if (loop.isClosed) { //only add closed contours
-        this.loops.push(loop)
+      this.loops.push(loop)
       // }
 
 
@@ -253,7 +252,7 @@ class MetaSquare {
     console.log("total loops", this.loops.length)
     // // add the points to a closed contour 
   }
-  
+
   //return index of the first obj in arr. -1 if not found
   getIndexOf(arr: number[][], obj: number[]): number {
     for (const { index, a } of arr.map((a, index) => ({ index, a }))) {
@@ -265,65 +264,89 @@ class MetaSquare {
     return -1
   }
 
-  drawLoops(){
+  drawSeeds(): void {
+    //go through seeds and add extruded circles 
+    let cShape: THREE.Shape
+    let mesh: THREE.Mesh
+    // var scale
+    // var totalStep = 4
+    // var eachStep = 2
+    // for (let step: number = 0; step < totalStep; step++) {
+    // scale = 1 + step * .1;
+    for (let i: number = 0; i < this.seeds.length; i++) {
+      cShape = new THREE.Shape()
+      cShape.absarc(bubbleSeeds[i].x, this.seeds[i].y, this.seeds[i].r, 0, Math.PI * 2, true);
+      mesh = extrudeRoundCorner(cShape);
+      // mesh.position.z = step * eachStep;
+      mesh.position.z = 0;
+      scene.add(mesh);
+    }
+
+    // }
+  }
+  drawWiredLoops() {
     for (let l of this.loops) {
       const points = []
       for (let v of l.vertices) {
-        points.push(new THREE.Vector3(v[0], v[1], -4))
+        points.push(new THREE.Vector2(v[0], v[1]))
       }
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
       const line = new THREE.Line(geometry, lineMaterial);
       scene.add(line);
     }
-
   }
+  
+  drawLoops():void{
+    let cShape: THREE.Shape
+    let mesh: THREE.Mesh
+    for (let l of this.loops) {
+      cShape = new THREE.Shape()
+      for (let v of l.vertices){
+        cShape.lineTo(v[0],v[1])
+      }
+      mesh = extrudeRoundCorner(cShape); 
+      mesh.position.z = -3
+      scene.add(mesh)
+    }
+  }
+
   update(): void {
     this.calculateSegments()
     this.calculateLoops()
   }
-  
+
+  draw(): void {
+    this.drawSeeds()
+    // this.drawWiredLoops()
+    this.drawLoops()
+
+  }
 }
 
-//setup 
+//setup---------------------------------------------------------------- 
 let bubbleSeeds: Array<BubbleSeed>
 bubbleSeeds = [
-  new BubbleSeed(15, 30, 1.4),
-  new BubbleSeed(25, 20),
-  new BubbleSeed(16, 27, .6),
-  new BubbleSeed(6, 8, 3),
-  new BubbleSeed(45, 12, 7),
+  new BubbleSeed(15, 30),
+  new BubbleSeed(25, 31, 3),
+  new BubbleSeed(12, 22, 1.6),
+  new BubbleSeed(16, 8, 1),
+  new BubbleSeed(32, 12, 1),
+  new BubbleSeed(40, 18, 7),
 ];
 
-let metaSquare = new MetaSquare(bubbleSeeds)
+const metaSquare = new MetaSquare(bubbleSeeds)
+metaSquare.threshold = 1.3 //smaller => blobbier 
 metaSquare.update()
-metaSquare.drawLoops()
+metaSquare.draw()
 
 
-//go through seeds and add extruded circles 
-let cShape: THREE.Shape
-var mesh: THREE.Mesh
-var scale
-var totalStep = 1;
-for (let step: number = 0; step < totalStep; step++) {
-  scale = 1 - step * .1;
-  for (let i: number = 0; i < bubbleSeeds.length; i++) {
-    cShape = new THREE.Shape()
-    cShape.absarc(bubbleSeeds[i].x, bubbleSeeds[i].y, bubbleSeeds[i].r * scale, 0, Math.PI * 2, true);
-    mesh = ExtrudeRoundCorner(cShape);
-    mesh.position.z = step * -7;
-    scene.add(mesh);
-  }
-
-}
-
-function ExtrudeRoundCorner(_shape: Shape) {
-
+function extrudeRoundCorner(_shape: Shape) {
   const extrudeSettings = {
     steps: 1,
     depth: 0,
     bevelEnabled: true,
-    bevelThickness: 1,
-    bevelSize: 1,
+    bevelThickness: 0.2,
+    bevelSize: 0.2,
     bevelOffset: 0,
     bevelSegments: 7  //smooth curved extrusion
   };
@@ -344,6 +367,7 @@ function animation(time: number) {
 
   // mesh.rotation.x = time / 2000
   // mesh.rotation.y = time / 2000
+  bubbleSeeds[0].r = 5 + 2 * Math.sin(time / 2000)
 
   renderer.render(scene, camera)
 }
