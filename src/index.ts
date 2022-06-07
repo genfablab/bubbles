@@ -33,21 +33,6 @@ const lineMaterial = new THREE.LineBasicMaterial({
   color: 0x0000ff
 });
 
-class BubbleSeed {
-  x: number
-  y: number
-  r: number
-  pos: THREE.Vector2
-  constructor(x: number, y: number, r = 5) {
-    this.x = x
-    this.y = y
-    this.r = r
-    this.pos = new THREE.Vector2(x, y)
-  }
-
-
-}
-
 class Loop {
   vertices: number[][]
   tail: string
@@ -105,7 +90,7 @@ class MetaSquare {
     this.threshold = 1.6 //default
     this.segments = []
     this.loops = []
-
+    this.update()
   }
 
   calculateSegments(): void {
@@ -296,6 +281,21 @@ class MetaSquare {
 
 }
 
+
+class BubbleSeed {
+  x: number
+  y: number
+  r: number
+  pos: THREE.Vector2
+  constructor(x: number, y: number, r = 5) {
+    this.x = x
+    this.y = y
+    this.r = r
+    this.pos = new THREE.Vector2(x, y)
+  }
+}
+
+
 //setup---------------------------------------------------------------- 
 let bubbleSeeds: Array<BubbleSeed>
 bubbleSeeds = [
@@ -308,22 +308,23 @@ bubbleSeeds = [
 ];
 
 var totalStep = 4
-var eachStep = 2
+var eachStep = 1.9
 var z = 0
 var scale
 let cShape: THREE.Shape
 let mesh: THREE.Mesh
-let newSeeds = []
+let newSeeds:BubbleSeed[]
 for (let step: number = 0; step < totalStep; step++) {
+  newSeeds=[]
   z += eachStep
-//   scale = 1 + step * .1
-//   for (let b of bubbleSeeds){
-//     newSeeds.push( new BubbleSeed(b.x, b.y, b.r*scale))
-//   }
-  // const metaSquare = new MetaSquare(newSeeds)
-  const metaSquare = new MetaSquare(bubbleSeeds)
+  scale = 1 + step * .1
+  for (let b of bubbleSeeds){
+    newSeeds.push( new BubbleSeed(b.x, b.y, b.r*scale))
+  }
+  console.log(newSeeds)
+  const metaSquare = new MetaSquare(newSeeds)
+  // const metaSquare = new MetaSquare(bubbleSeeds)
   // metaSquare.threshold = 1.6 //smaller => blobbier 
-  metaSquare.update()
   for (let l of metaSquare.loops) {
     if (l.isClosed) { //only extrude closed loops
       mesh = extrudeRoundCorner(l.loopShape);
