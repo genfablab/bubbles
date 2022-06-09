@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { Shape, Vector2, Vector3 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { setQuaternionFromProperEuler } from 'three/src/math/MathUtils';
-
+import { mergeBufferGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 //---- init ----
 const scene = new THREE.Scene()
 scene.background = new THREE.Color(0x8FBCD4);
@@ -79,7 +79,6 @@ class MetaSquare {
   segments: number[][][]
   loops: Array<Loop>
   z: number
-  // vertices: Array<THREE.Vector2>
 
   constructor(_seeds: Array<BubbleSeed>) {
     //100 1 
@@ -93,6 +92,36 @@ class MetaSquare {
     this.update()
   }
 
+  update(): void {
+    this.calculateSegments()
+    this.calculateLoops()
+  }
+
+  getGeom(){
+    //todo check if update() is needed 
+    const extrudeSettings = {
+      steps: 1,
+      depth: 0,
+      bevelEnabled: true,
+      bevelThickness: 0.18,
+      bevelSize: 0.18,
+      bevelOffset: 0,
+      bevelSegments: 7  //smooth curved extrusion
+    };
+    // console.log(typeof(extrudeSettings) )
+    let geomArray:THREE.BufferGeometry[] = []
+    for (let l of this.loops) {
+      if(l.isClosed){
+        geomArray.push (new THREE.ExtrudeGeometry(l.loopShape, extrudeSettings))
+      }
+    }
+    
+    const geometry = mergeBufferGeometries(geomArray) 
+    geometry.computeBoundingSphere()
+    return geometry 
+    
+  }
+  
   calculateSegments(): void {
     let x1: number, y1: number, x2: number, y2: number
     for (var y: number = 0; y < this.cellNum + 1; y++) {
@@ -201,9 +230,7 @@ class MetaSquare {
   }
   calculateLoops(): void {
     // console.log("total segements", this.segments.length)
-    if (this.segments.length < 3) {
-      return
-    }
+
     while (this.segments.length > 0) {
       var loop = new Loop()
       //go through the segments to add to this new loop 
@@ -213,9 +240,8 @@ class MetaSquare {
           const pointA = s[0] //[x,y]
           const pointB = s[1]
 
-          if (loop.vertices.length == 0) {
+          if (loop.vertices.length == 0) {//put down the first two loop
             // console.log('begin a new loop')
-            //put down the first two loop
             loop.addVertex(this.segments[0][0]) //head , same as the tail when loop is finished 
             loop.addVertex(this.segments[0][1])
             this.segments.shift() //remove the segment that's added
@@ -237,19 +263,20 @@ class MetaSquare {
         }
         if (!newPointAdded) { //after going through all segements, no match was found 
           console.log("Loop left open")
+          //todo manually stitch close the loop? //or adapt the size of the grid ?
           break
         }
       }
       // if (loop.isClosed) { //only add closed contours
-      this.loops.push(loop)
+        this.loops.push(loop)
       // }
     }
     //all vertices added
     // console.log("total loops", this.loops.length)    
   }
 
-  drawSeeds(): void {
-    //go through seeds and add extruded circles 
+  drawSeeds(): void {  //go through seeds and add extruded circles 
+   
     let cShape: THREE.Shape
     let mesh: THREE.Mesh
 
@@ -273,15 +300,9 @@ class MetaSquare {
       scene.add(line);
     }
   }
-
-  update(): void {
-    this.calculateSegments()
-    this.calculateLoops()
-  }
-
 }
 
-//todo interface 
+//todo experiment w/ interface 
 class BubbleSeed {
   x: number
   y: number
@@ -306,13 +327,13 @@ bubbleSeeds = [
   new BubbleSeed(16, 8, 1),
   new BubbleSeed(32, 12, 1),
   new BubbleSeed(40, 18, 3),
+  // new BubbleSeed(0,0,7), 
 ];
 //4 1.9
 var totalStep = 7
 var eachStep = 0.9
 var z = 0
 var scale
-let cShape: THREE.Shape
 let mesh: THREE.Mesh
 let newSeeds:BubbleSeed[]
 for (let step: number = 0; step < totalStep; step++) {
@@ -322,24 +343,8 @@ for (let step: number = 0; step < totalStep; step++) {
   for (let b of bubbleSeeds){
     newSeeds.push( new BubbleSeed(b.x, b.y, b.r*scale))
   }
-  console.log(newSeeds)
   const metaSquare = new MetaSquare(newSeeds)
-  // metaSquare.threshold = 1.6 //smaller => blobbier 
-  for (let l of metaSquare.loops) {
-    if (l.isClosed) { //only extrude closed loops
-      // adapt the size of the grid 
-      // throw an error when not closed 
-      mesh = extrudeRoundCorner(l.loopShape);
-      mesh.position.z = z
-      scene.add(mesh)
-    }
-  }
-}
-
-
-
-//helpers---------------------------------------------------------------- 
-function extrudeRoundCorner(_shape: Shape) {
+  // metaSquare.threshold = 1.6 //smaller => blobbier
   const extrudeSettings = {
     steps: 1,
     depth: 0,
@@ -350,6 +355,52 @@ function extrudeRoundCorner(_shape: Shape) {
     bevelSegments: 7  //smooth curved extrusion
   };
 
+  const material = new THREE.MeshNormalMaterial();
+
+  for (let l of metaSquare.loops) {
+    let mesh = new THREE.Mesh(metaSquare.getGeom(), material);
+    mesh.position.z = z
+    scene.add(mesh)
+  }
+}
+
+/* mike's noop anti-donut-shop suggestion 
+bubbleseeed= [, , ,]
+geom = getmetasquare(bubbleseed)
+three mesh render
+
+fucntion getmetasquare(
+  start an instatnce of metasquare
+)
+*/
+
+
+//helpers---------------------------------------------------------------- 
+function extrudeGeomRoundCorner(_shape: Shape) {
+  const extrudeSettings = {
+    steps: 1,
+    depth: 0,
+    bevelEnabled: true,
+    bevelThickness: 0.18,
+    bevelSize: 0.18,
+    bevelOffset: 0,
+    bevelSegments: 7  //smooth curved extrusion
+  };
+  
+  return new THREE.ExtrudeGeometry(_shape, extrudeSettings);
+}
+
+function extrudeRoundCorner(_shape: Shape) {
+  const extrudeSettings = {
+    steps: 1,
+    depth: 0,
+    bevelEnabled: true,
+    bevelThickness: 0.18,
+    bevelSize: 0.18,
+    bevelOffset: 0,
+    bevelSegments: 7  //smooth curved extrusion
+  };
+  // console.log(typeof(extrudeSettings) )
   const geometry = new THREE.ExtrudeGeometry(_shape, extrudeSettings);
   const material = new THREE.MeshNormalMaterial();
 
