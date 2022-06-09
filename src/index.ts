@@ -1,36 +1,91 @@
 import * as THREE from 'three'
 import { Shape, Vector2, Vector3 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { setQuaternionFromProperEuler } from 'three/src/math/MathUtils';
 import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { OBJExporter } from 'three/examples/jsm/exporters/OBJExporter.js'
 //---- init ----
-const scene = new THREE.Scene()
-scene.background = new THREE.Color(0x8FBCD4);
+let scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer
+function init() {
+  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight)
+  renderer.setAnimationLoop(animation)
+  document.body.appendChild(renderer.domElement)
 
-const camera = new THREE.PerspectiveCamera(
-  70, window.innerWidth / window.innerHeight, 0.01, 200
-);
-camera.position.x = 5;
-camera.position.y = 0;
-camera.position.z = 80;
-camera.lookAt(new Vector3(0, 0, 0));
-scene.add(camera);
+  camera = new THREE.PerspectiveCamera(
+    70, window.innerWidth / window.innerHeight, 0.01, 200
+  );
+  camera.position.x = 5;
+  camera.position.y = 0;
+  camera.position.z = 80;
+  camera.lookAt(new Vector3(0, 0, 0));
 
-const renderer = new THREE.WebGLRenderer({ antialias: true })
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight)
-renderer.setAnimationLoop(animation)
-document.body.appendChild(renderer.domElement)
+  scene = new THREE.Scene()
+  scene.add(camera);
+  scene.background = new THREE.Color(0x8FBCD4);
 
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.autoRotate = false;
-controls.enablePan = true;
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enablePan = true;
 
+  const axesHelper = new THREE.AxesHelper(10);
+  scene.add(axesHelper);
+
+  window.addEventListener('resize', onWindowResize);
+}
 
 const lineMaterial = new THREE.LineBasicMaterial({
   color: 0x0000ff
 });
 
+
+
+// //Scene setup
+// const bgScene = new THREE.Scene();
+// let bgMesh;
+// {
+//   const loader = new THREE.TextureLoader();
+//   const texture = loader.load(
+//     '/resources/tears_of_steel_bridge_2k.jpg',
+//   );
+//   texture.magFilter = THREE.LinearFilter;
+//   texture.minFilter = THREE.LinearFilter;
+
+//   const shader = THREE.ShaderLib.equirect;
+//   const material = new THREE.ShaderMaterial({
+//     fragmentShader: shader.fragmentShader,
+//     vertexShader: shader.vertexShader,
+//     uniforms: shader.uniforms,
+//     depthWrite: false,
+//     side: THREE.BackSide,
+//   });
+//   material.uniforms.tEquirect.value = texture;
+//   const plane = new THREE.BoxBufferGeometry(100, 100, 100);
+//   bgMesh = new THREE.Mesh(plane, material);
+//   bgScene.add(bgMesh);
+// }
+
+// bgMesh.position.copy(camera.position);
+// renderer.render(bgScene, camera);
+
+
+// animation
+function animation(time: number) {
+
+  renderer.render(scene, camera)
+}
+
+function onWindowResize() {
+
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+}
+
+
+
+//----------------------------------------------------------------
 //takes vertices and chain them into a contour 
 class Loop {
   vertices: number[][]
@@ -76,15 +131,15 @@ class BubbleLayer {
   segments: number[][][] //an array of line segments [segement index][point index: 0 or 1] [coordinates: x, y ]
   loops: Array<Loop> //contours
   z: number
-  defaultExtrudeSettings:Object = { //for future comparison/
-      steps: 1,
-      depth: 0,
-      bevelEnabled: true,
-      bevelThickness: 0.18,
-      bevelSize: 0.18,
-      bevelOffset: 0,
-      bevelSegments: 7  //smooth curved extrusion
-    }
+  defaultExtrudeSettings: Object = { //for future comparison/
+    steps: 1,
+    depth: 0,
+    bevelEnabled: true,
+    bevelThickness: 0.18,
+    bevelSize: 0.18,
+    bevelOffset: 0,
+    bevelSegments: 7  //smooth curved extrusion
+  }
 
   /*
   explanation http://jamie-wong.com/2014/08/19/metaballs-and-marching-squares/ 
@@ -278,16 +333,16 @@ class BubbleLayer {
 
     let cShape: THREE.Shape
     let mesh: THREE.Mesh
-
+    const material = new THREE.MeshNormalMaterial();
     for (let i: number = 0; i < this.seeds.length; i++) {
       cShape = new THREE.Shape()
       cShape.absarc(bubbleSeeds[i].x, this.seeds[i].y, this.seeds[i].r, 0, Math.PI * 2, true);
-      mesh = extrudeRoundCorner(cShape);
+      mesh = new THREE.Mesh(new THREE.ExtrudeGeometry(cShape, this.defaultExtrudeSettings), material)
       mesh.position.z = 0;
       scene.add(mesh);
     }
-
   }
+
   drawWiredLoops(): void { //debug: draw sorted lines 
     for (let l of this.loops) {
       const points = []
@@ -316,9 +371,11 @@ class BubbleSeed {
 }
 
 //setup---------------------------------------------------------------- 
-  /*
+/*
 bubbleSeeds -> marching squrae/ metaSquare edge segements -> contour -> layer geom buffer
 */
+init()
+
 let bubbleSeeds: Array<BubbleSeed>
 bubbleSeeds = [
   new BubbleSeed(15, 30),
@@ -359,55 +416,25 @@ for (let layer: number = 0; layer < totalLayer; layer++) {
   scene.add(new THREE.Mesh(bubbleLayer.getGeom(extrudeSettings, z), material))
 }
 
-/* mike's noop anti-donut-shop suggestion 
-bubbleseeed= [, , ,]
-geom = getmetasquare(bubbleseed)
-three mesh render
+exportToObj()
 
-fucntion getmetasquare(
-  start an instatnce of metasquare
-)
-*/
-
-//helpers---------------------------------------------------------------- 
-function extrudeRoundCorner(_shape: Shape) {
-  const extrudeSettings = {
-    steps: 1,
-    depth: 0,
-    bevelEnabled: true,
-    bevelThickness: 0.18,
-    bevelSize: 0.18,
-    bevelOffset: 0,
-    bevelSegments: 7  //smooth curved extrusion
-  };
-  // console.log(typeof(extrudeSettings) )
-  const geometry = new THREE.ExtrudeGeometry(_shape, extrudeSettings);
-  const material = new THREE.MeshNormalMaterial();
-
-  return new THREE.Mesh(geometry, material);;
+function exportToObj() {
+  const exporter = new OBJExporter();
+  const result = exporter.parse(scene);
+  exportToFile("bubble"+Date.now()+".obj",result );
 }
+function exportToFile( filename:string, data:any ) {
+  var pom = document.createElement( 'a' );
+  pom.href = URL.createObjectURL( new Blob( [ data ], { type : 'text/plain'} ) );
+  pom.download = filename; 
+  document.body.appendChild( pom );
 
-const axesHelper = new THREE.AxesHelper(10);
-scene.add(axesHelper);
-
-window.addEventListener('resize', onWindowResize);
-
-// animation
-function animation(time: number) {
-
-  // mesh.rotation.x = time / 2000
-  // mesh.rotation.y = time / 2000
-  bubbleSeeds[0].r = 5 + 2 * Math.sin(time / 2000)
-
-  renderer.render(scene, camera)
+  if( document.createEvent ) {
+    var event = document.createEvent( 'MouseEvents' );
+    event.initEvent( 'click', true, true );
+    pom.dispatchEvent( event );
+  }
+  else {
+    pom.click();
+  }
 }
-
-function onWindowResize() {
-
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-
-  renderer.setSize(window.innerWidth, window.innerHeight);
-
-}
-
