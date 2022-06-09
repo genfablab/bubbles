@@ -33,11 +33,13 @@ const lineMaterial = new THREE.LineBasicMaterial({
   color: 0x0000ff
 });
 
+//takes vertices and chain them into a contour 
 class Loop {
   vertices: number[][]
   tail: string
-  isClosed: boolean
+  isClosed: boolean //closed ones are ready for extrusion 
   loopShape: THREE.Shape 
+
   constructor() {
     this.vertices = []
     this.isClosed = false
@@ -66,20 +68,20 @@ class Loop {
     return (newPoint.toString() == this.tail)
   }
 }
-/*
-explanation http://jamie-wong.com/2014/08/19/metaballs-and-marching-squares/ 
-implementation https://openprocessing.org/sketch/375385 
-*/
+
 class MetaSquare {
-  cellNum: number
+  cellNum: number //total number of cells 
   cellSize: number
-  cells: number[][]
+  cells: number[][] //[index][x,y]
   seeds: Array<BubbleSeed>
   threshold: number
-  segments: number[][][]
-  loops: Array<Loop>
+  segments: number[][][] //an array of line segments [segement index][point index: 0 or 1] [coordinates: x, y ]
+  loops: Array<Loop> //contours
   z: number
-
+  /*
+  explanation http://jamie-wong.com/2014/08/19/metaballs-and-marching-squares/ 
+  implementation https://openprocessing.org/sketch/375385 
+  */
   constructor(_seeds: Array<BubbleSeed>) {
     //100 1 
     this.cellNum = 280
@@ -116,9 +118,13 @@ class MetaSquare {
       }
     }
     
-    const geometry = mergeBufferGeometries(geomArray) 
-    geometry.computeBoundingSphere()
-    return geometry 
+    const mergedGeom = mergeBufferGeometries(geomArray) 
+    mergedGeom.translate(0,0,10) //todo
+    // mergedGeom.computeBoundingSphere()
+
+    return mergedGeom 
+
+  
     
   }
   
@@ -356,7 +362,12 @@ for (let step: number = 0; step < totalStep; step++) {
   };
 
   const material = new THREE.MeshNormalMaterial();
+  /*
 
+  1. metasquare -> BubbleLayer
+  
+  seeds -> segements -> contour -> layer geom buffer (z) 
+  */
   for (let l of metaSquare.loops) {
     let mesh = new THREE.Mesh(metaSquare.getGeom(), material);
     mesh.position.z = z
