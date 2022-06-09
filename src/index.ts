@@ -281,7 +281,7 @@ class MetaSquare {
 
 }
 
-
+//todo interface 
 class BubbleSeed {
   x: number
   y: number
@@ -324,10 +324,11 @@ for (let step: number = 0; step < totalStep; step++) {
   }
   console.log(newSeeds)
   const metaSquare = new MetaSquare(newSeeds)
-  // const metaSquare = new MetaSquare(bubbleSeeds)
   // metaSquare.threshold = 1.6 //smaller => blobbier 
   for (let l of metaSquare.loops) {
     if (l.isClosed) { //only extrude closed loops
+      // adapt the size of the grid 
+      // throw an error when not closed 
       mesh = extrudeRoundCorner(l.loopShape);
       mesh.position.z = z
       scene.add(mesh)
