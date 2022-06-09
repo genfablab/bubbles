@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { Shape, Vector2, Vector3 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { setQuaternionFromProperEuler } from 'three/src/math/MathUtils';
-import { mergeBufferGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 //---- init ----
 const scene = new THREE.Scene()
 scene.background = new THREE.Color(0x8FBCD4);
@@ -26,9 +26,7 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.autoRotate = false;
 controls.enablePan = true;
 
-const lineMaterialSeg = new THREE.LineBasicMaterial({
-  color: 0xff0000
-});
+
 const lineMaterial = new THREE.LineBasicMaterial({
   color: 0x0000ff
 });
@@ -38,7 +36,7 @@ class Loop {
   vertices: number[][]
   tail: string
   isClosed: boolean //closed ones are ready for extrusion 
-  loopShape: THREE.Shape 
+  loopShape: THREE.Shape
 
   constructor() {
     this.vertices = []
@@ -53,13 +51,13 @@ class Loop {
       this.gen2DShape()
     }
   }
-  gen2DShape():void{
-    if (!this.isClosed ||  this.vertices.length<3){
+  gen2DShape(): void {
+    if (!this.isClosed || this.vertices.length < 3) {
       console.error("cannot generate THREE Shape")
       return
     }
     this.loopShape = new THREE.Shape()
-    this.loopShape.moveTo(this.vertices[0][0],this.vertices[0][1])
+    this.loopShape.moveTo(this.vertices[0][0], this.vertices[0][1])
     for (let v of this.vertices) {
       this.loopShape.lineTo(v[0], v[1])
     }
@@ -69,7 +67,7 @@ class Loop {
   }
 }
 
-class MetaSquare {
+class BubbleLayer {
   cellNum: number //total number of cells 
   cellSize: number
   cells: number[][] //[index][x,y]
@@ -78,6 +76,16 @@ class MetaSquare {
   segments: number[][][] //an array of line segments [segement index][point index: 0 or 1] [coordinates: x, y ]
   loops: Array<Loop> //contours
   z: number
+  defaultExtrudeSettings:Object = { //for future comparison/
+      steps: 1,
+      depth: 0,
+      bevelEnabled: true,
+      bevelThickness: 0.18,
+      bevelSize: 0.18,
+      bevelOffset: 0,
+      bevelSegments: 7  //smooth curved extrusion
+    }
+
   /*
   explanation http://jamie-wong.com/2014/08/19/metaballs-and-marching-squares/ 
   implementation https://openprocessing.org/sketch/375385 
@@ -91,7 +99,6 @@ class MetaSquare {
     this.threshold = 1.6 //default
     this.segments = []
     this.loops = []
-    this.update()
   }
 
   update(): void {
@@ -99,35 +106,20 @@ class MetaSquare {
     this.calculateLoops()
   }
 
-  getGeom(){
-    //todo check if update() is needed 
-    const extrudeSettings = {
-      steps: 1,
-      depth: 0,
-      bevelEnabled: true,
-      bevelThickness: 0.18,
-      bevelSize: 0.18,
-      bevelOffset: 0,
-      bevelSegments: 7  //smooth curved extrusion
-    };
-    // console.log(typeof(extrudeSettings) )
-    let geomArray:THREE.BufferGeometry[] = []
+  getGeom(settings: Object, zPos: number) {
+    //todo check settings if update() is needed 
+    this.update()
+    let geomArray: THREE.BufferGeometry[] = []
     for (let l of this.loops) {
-      if(l.isClosed){
-        geomArray.push (new THREE.ExtrudeGeometry(l.loopShape, extrudeSettings))
+      if (l.isClosed) {
+        geomArray.push(new THREE.ExtrudeGeometry(l.loopShape, settings))
       }
     }
-    
-    const mergedGeom = mergeBufferGeometries(geomArray) 
-    mergedGeom.translate(0,0,10) //todo
-    // mergedGeom.computeBoundingSphere()
-
-    return mergedGeom 
-
-  
-    
+    const mergedGeom = mergeBufferGeometries(geomArray)
+    mergedGeom.translate(0, 0, zPos)
+    return mergedGeom
   }
-  
+
   calculateSegments(): void {
     let x1: number, y1: number, x2: number, y2: number
     for (var y: number = 0; y < this.cellNum + 1; y++) {
@@ -231,6 +223,7 @@ class MetaSquare {
     const seg = [[x1, y1], [x2, y2]]
     this.segments.push(seg)
     // // DEBUGGING draw segments on scene
+    // const lineMaterialSeg = new THREE.LineBasicMaterial({color: 0xff0000});
     // const points = [new THREE.Vector2(x1, y1), new THREE.Vector2(x2, y2)]
     // scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMaterialSeg))
   }
@@ -274,15 +267,15 @@ class MetaSquare {
         }
       }
       // if (loop.isClosed) { //only add closed contours
-        this.loops.push(loop)
+      this.loops.push(loop)
       // }
     }
     //all vertices added
     // console.log("total loops", this.loops.length)    
   }
 
-  drawSeeds(): void {  //go through seeds and add extruded circles 
-   
+  drawSeeds(): void {  //debug: go through seeds and add extruded circles 
+
     let cShape: THREE.Shape
     let mesh: THREE.Mesh
 
@@ -295,7 +288,7 @@ class MetaSquare {
     }
 
   }
-  drawWiredLoops():void {
+  drawWiredLoops(): void { //debug: draw sorted lines 
     for (let l of this.loops) {
       const points = []
       for (let v of l.vertices) {
@@ -322,8 +315,10 @@ class BubbleSeed {
   }
 }
 
-
 //setup---------------------------------------------------------------- 
+  /*
+bubbleSeeds -> marching squrae/ metaSquare edge segements -> contour -> layer geom buffer
+*/
 let bubbleSeeds: Array<BubbleSeed>
 bubbleSeeds = [
   new BubbleSeed(15, 30),
@@ -335,44 +330,33 @@ bubbleSeeds = [
   new BubbleSeed(40, 18, 3),
   // new BubbleSeed(0,0,7), 
 ];
-//4 1.9
-var totalStep = 7
-var eachStep = 0.9
+var totalLayer = 7
+var eachLayer = 0.9
 var z = 0
 var scale
-let mesh: THREE.Mesh
-let newSeeds:BubbleSeed[]
-for (let step: number = 0; step < totalStep; step++) {
-  newSeeds=[]
-  z += eachStep
-  scale = 1 + step * 0.12* Math.random()
-  for (let b of bubbleSeeds){
-    newSeeds.push( new BubbleSeed(b.x, b.y, b.r*scale))
-  }
-  const metaSquare = new MetaSquare(newSeeds)
-  // metaSquare.threshold = 1.6 //smaller => blobbier
-  const extrudeSettings = {
-    steps: 1,
-    depth: 0,
-    bevelEnabled: true,
-    bevelThickness: 0.18,
-    bevelSize: 0.18,
-    bevelOffset: 0,
-    bevelSegments: 7  //smooth curved extrusion
-  };
+let newSeeds: BubbleSeed[]
 
-  const material = new THREE.MeshNormalMaterial();
-  /*
+const material = new THREE.MeshNormalMaterial();
+const extrudeSettings = {
+  steps: 1,
+  depth: 0,
+  bevelEnabled: true,
+  bevelThickness: 0.18,
+  bevelSize: 0.18,
+  bevelOffset: 0,
+  bevelSegments: 7  //smooth curved extrusion
+};
 
-  1. metasquare -> BubbleLayer
-  
-  seeds -> segements -> contour -> layer geom buffer (z) 
-  */
-  for (let l of metaSquare.loops) {
-    let mesh = new THREE.Mesh(metaSquare.getGeom(), material);
-    mesh.position.z = z
-    scene.add(mesh)
+for (let layer: number = 0; layer < totalLayer; layer++) {
+  newSeeds = []
+  z += eachLayer
+  scale = 1 + layer * 0.12 * Math.random()
+  for (let b of bubbleSeeds) {
+    newSeeds.push(new BubbleSeed(b.x, b.y, b.r * scale))
   }
+  const bubbleLayer = new BubbleLayer(newSeeds)
+  // bubbleLayer.threshold = 1.6 //smaller => blobbier
+  scene.add(new THREE.Mesh(bubbleLayer.getGeom(extrudeSettings, z), material))
 }
 
 /* mike's noop anti-donut-shop suggestion 
@@ -385,22 +369,7 @@ fucntion getmetasquare(
 )
 */
 
-
 //helpers---------------------------------------------------------------- 
-function extrudeGeomRoundCorner(_shape: Shape) {
-  const extrudeSettings = {
-    steps: 1,
-    depth: 0,
-    bevelEnabled: true,
-    bevelThickness: 0.18,
-    bevelSize: 0.18,
-    bevelOffset: 0,
-    bevelSegments: 7  //smooth curved extrusion
-  };
-  
-  return new THREE.ExtrudeGeometry(_shape, extrudeSettings);
-}
-
 function extrudeRoundCorner(_shape: Shape) {
   const extrudeSettings = {
     steps: 1,
