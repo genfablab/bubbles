@@ -390,7 +390,6 @@ class BubbleLayer {
   }
 }
 
-//todo experiment w/ interface 
 class BubbleSeed {
   x: number
   y: number
@@ -416,7 +415,6 @@ bubbleSeeds = [
   new BubbleSeed(18, 27, 2.4),
   new BubbleSeed(23, 21, 3),  
   new BubbleSeed(32, 13, 1.5),
-  // new BubbleSeed(40, 18, 2.2),
 ];
 var totalLayer = 7
 var eachLayer = 0.75
@@ -450,8 +448,10 @@ for (let layer: number = 0; layer < totalLayer; layer++) {
 
 function exportToObj() {
   const exporter = new OBJExporter();
-  const result = exporter.parse(scene);
-  exportToFile("bubble"+Date.now()+".obj",result );
+  const result = exporter.parse(scene)
+  const date = new Date()
+  const timestamp = date.getFullYear().toString()+'_'+(date.getMonth()+1)+date.getHours()+'_'+date.getMinutes()+date.getSeconds()
+  exportToFile("bubbles_" + timestamp +".obj",result);
 }
 
 function exportToFile( filename:string, data:any ) {
@@ -469,13 +469,3 @@ function exportToFile( filename:string, data:any ) {
     pom.click();
   }
 }
-
-/*
-todo add ui for triggering exportToOBJ
-change material 
-add skybox 
-how to load local file 
-add interaction 
-fix grid size bug 
-add animation 
-*/
