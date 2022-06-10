@@ -1,16 +1,9 @@
 import * as THREE from 'three'
-import { Shape, Vector2, Vector3 } from 'three';
+import { Shape, Vector2, Vector3, WebGLMultisampleRenderTarget } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { OBJExporter } from 'three/examples/jsm/exporters/OBJExporter.js'
 import { GUI } from 'lil-gui'
-//---- init ----
-let scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer
-
-
-const lineMaterial = new THREE.LineBasicMaterial({
-  color: 0x0000ff
-})
 
 function init() {
   renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -38,34 +31,23 @@ function init() {
   scene.add(axesHelper);
 
   window.addEventListener('resize', onWindowResize);
-  
-  const directionalLight = new THREE.DirectionalLight( 0x8FBCD4, 1 );
-  directionalLight.position.set( 1, 1, 20 ).normalize();
-	scene.add( directionalLight );
-  
+
+  const directionalLight = new THREE.DirectionalLight(0x8FBCD4, 1);
+  directionalLight.position.set(1, 1, 20).normalize();
+  scene.add(directionalLight);
+
   //parameters
   const gui = new GUI();
-
-  const guiSettings = {
-    showSeeds: false,
-    fileName: 'bubble',
-    layers: 7,
-    layerDistance: 0.75,
-    'download obj': exportToObj
-  };
-
-  // gui.add( myObject, 'showSeeds' );  // Checkbox
-  // gui.add( myObject, 'fileName' );   // Text Field
-  gui.add( guiSettings, 'layers', 1, 27).step(1).onChange( function () {
-    setLayers();
+  gui.add( guiSettings, 'showSeeds' );  // Checkbox
+  gui.add(guiSettings, 'totalLayer', 1, 27).step(1).onChange(function () {
+    //TODO this is triggered if slider is clicked, without changing value
+    addBubbles()
   })
-  gui.add( guiSettings, 'download obj' ); // Button
+  gui.add(guiSettings, 'download obj') // Button
+
+  parent = new THREE.Object3D();
+  scene.add(parent);
 }
-
-function setLayers(){
-
-}
-
 
 // //Scene setup
 // const bgScene = new THREE.Scene();
@@ -199,15 +181,15 @@ class BubbleLayer {
         geomArray.push(new THREE.ExtrudeGeometry(l.loopShape, settings))
       }
     }
-    if(geomArray.length>0){
+    if (geomArray.length > 0) {
       const mergedGeom = mergeBufferGeometries(geomArray)
       mergedGeom.translate(0, 0, zPos)
       return mergedGeom
-    }else{
+    } else {
       //TODO question
       console.log('no loop exists')
     }
-    
+
     return null
   }
 
@@ -360,7 +342,7 @@ class BubbleLayer {
       this.loops.push(loop)
     }
     //all vertices added
-    console.log("total chain count", this.loops.length)    
+    // console.log("total chain count", this.loops.length)    
   }
 
   drawSeeds(): void {  //debug: go through seeds and add extruded circles 
@@ -407,22 +389,17 @@ class BubbleSeed {
 /*
 bubbleSeeds -> marching squrae/ metaSquare edge segements -> contour -> layer geom buffer
 */
-init()
 
+let scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer
 let bubbleSeeds: Array<BubbleSeed>
+let parent: THREE.Object3D, mesh: THREE.Mesh
 bubbleSeeds = [
-  new BubbleSeed(10, 22, 1.6),
+  new BubbleSeed(12, 22, 1.6),
   new BubbleSeed(18, 27, 2.4),
-  new BubbleSeed(23, 21, 3),  
+  new BubbleSeed(23, 21, 3),
   new BubbleSeed(32, 13, 1.5),
 ];
-var totalLayer = 7
-var eachLayer = 0.75
-var z = 0
-var scale
-let newSeeds: BubbleSeed[]
 
-const material = new THREE.MeshNormalMaterial();
 const extrudeSettings = {
   steps: 1,
   depth: 0,
@@ -432,38 +409,77 @@ const extrudeSettings = {
   bevelOffset: 0,
   bevelSegments: 7  //smooth curved extrusion
 };
+const guiSettings = {
+  showSeeds: false,
+  threshold: 1.7,
+  totalLayer: 7,
+  layerDistance: 0.75,
+  layerVariation: 0.12,
+  'download obj': exportToObj
+}
+const material = new THREE.MeshNormalMaterial();
+const lineMaterial = new THREE.LineBasicMaterial({
+  color: 0x0000ff
+})
 
-for (let layer: number = 0; layer < totalLayer; layer++) {
-  newSeeds = []
-  z += eachLayer
-  scale = 1 + layer * 0.12 * Math.random()
-  for (let b of bubbleSeeds) {
-    newSeeds.push(new BubbleSeed(b.x, b.y, b.r * scale))
+init()
+addBubbles();
+
+function addBubbles(){
+  if (mesh !== undefined) {
+    console.log("remvoe old mesh")
+    parent.remove(mesh);
+    mesh.geometry.dispose();
   }
-  const bubbleLayer = new BubbleLayer(newSeeds)
-  bubbleLayer.threshold = 1.7 //smaller => blobbier
-  // bubbleLayer.drawSeeds()
-  scene.add(new THREE.Mesh(bubbleLayer.getGeom(extrudeSettings, z), material))
+  mesh = new THREE.Mesh(getBubblesGeom(), material)
+  parent.add(mesh)
+}
+
+
+function getBubblesGeom() {
+  var z = 0
+  var scale
+  let layerGeom: THREE.BufferGeometry[] = []
+  let newSeeds: BubbleSeed[]
+  for (let layer: number = 0; layer < guiSettings.totalLayer; layer++) {
+    newSeeds = []
+    z += guiSettings.layerDistance
+    scale = 1 + layer * guiSettings.layerVariation * Math.random()
+    for (let b of bubbleSeeds) {
+      newSeeds.push(new BubbleSeed(b.x, b.y, b.r * scale))
+    }
+    const bubbleLayer = new BubbleLayer(newSeeds)
+    bubbleLayer.threshold = guiSettings.threshold //smaller => blobbier
+    // bubbleLayer.drawSeeds()
+    layerGeom.push(bubbleLayer.getGeom(extrudeSettings, z))
+  }
+  if (layerGeom.length > 0) {
+    const mergedGeom = mergeBufferGeometries(layerGeom)
+    return mergedGeom
+  } else { //TODO deal with it 
+    console.log('no loop exists')
+  }
+  return null
 }
 
 function exportToObj() {
   const exporter = new OBJExporter();
   const result = exporter.parse(scene)
   const date = new Date()
-  const timestamp = date.getFullYear().toString()+'_'+(date.getMonth()+1)+date.getHours()+'_'+date.getMinutes()+date.getSeconds()
-  exportToFile("bubbles_" + timestamp +".obj",result);
+  const timestamp = date.getFullYear().toString() + '_' + (date.getMonth() + 1) + date.getHours() + '_' + date.getMinutes() + date.getSeconds()
+  exportToFile("bubbles_" + timestamp + ".obj", result);
 }
 
-function exportToFile( filename:string, data:any ) {
-  var pom = document.createElement( 'a' );
-  pom.href = URL.createObjectURL( new Blob( [ data ], { type : 'text/plain'} ) );
-  pom.download = filename; 
-  document.body.appendChild( pom );
+function exportToFile(filename: string, data: any) {
+  var pom = document.createElement('a');
+  pom.href = URL.createObjectURL(new Blob([data], { type: 'text/plain' }));
+  pom.download = filename;
+  document.body.appendChild(pom);
 
-  if( document.createEvent ) {
-    var event = document.createEvent( 'MouseEvents' );
-    event.initEvent( 'click', true, true );
-    pom.dispatchEvent( event );
+  if (document.createEvent) {
+    var event = document.createEvent('MouseEvents');
+    event.initEvent('click', true, true);
+    pom.dispatchEvent(event);
   }
   else {
     pom.click();
