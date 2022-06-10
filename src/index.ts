@@ -31,11 +31,17 @@ function init() {
   scene.add(axesHelper);
 
   window.addEventListener('resize', onWindowResize);
+  
+  const directionalLight = new THREE.DirectionalLight( 0x8FBCD4, 1 );
+  directionalLight.position.set( 1, 1, 20 ).normalize();
+	scene.add( directionalLight );
+  
+
 }
 
 const lineMaterial = new THREE.LineBasicMaterial({
   color: 0x0000ff
-});
+})
 
 
 
@@ -146,9 +152,10 @@ class BubbleLayer {
   implementation https://openprocessing.org/sketch/375385 
   */
   constructor(_seeds: Array<BubbleSeed>) {
-    //100 1 
-    this.cellNum = 280
-    this.cellSize = 0.5
+    //100,1
+    //280 0.5 
+    this.cellNum = 500
+    this.cellSize = 0.25 //todoBUG finite options for cellsize.for other cellsizes NONE of the coordinates matches. 
     this.cells = [...Array(this.cellNum + 1)].map(e => Array(this.cellNum + 1).fill(0))
     this.seeds = _seeds
     this.threshold = 1.6 //default
@@ -170,9 +177,16 @@ class BubbleLayer {
         geomArray.push(new THREE.ExtrudeGeometry(l.loopShape, settings))
       }
     }
-    const mergedGeom = mergeBufferGeometries(geomArray)
-    mergedGeom.translate(0, 0, zPos)
-    return mergedGeom
+    if(geomArray.length>0){
+      const mergedGeom = mergeBufferGeometries(geomArray)
+      mergedGeom.translate(0, 0, zPos)
+      return mergedGeom
+    }else{
+      //TODO question
+      console.log('no loop exists')
+    }
+    
+    return null
   }
 
   calculateSegments(): void {
@@ -321,12 +335,10 @@ class BubbleLayer {
           break
         }
       }
-      // if (loop.isClosed) { //only add closed contours
       this.loops.push(loop)
-      // }
     }
     //all vertices added
-    // console.log("total loops", this.loops.length)    
+    console.log("total chain count", this.loops.length)    
   }
 
   drawSeeds(): void {  //debug: go through seeds and add extruded circles 
@@ -338,7 +350,7 @@ class BubbleLayer {
       cShape = new THREE.Shape()
       cShape.absarc(bubbleSeeds[i].x, this.seeds[i].y, this.seeds[i].r, 0, Math.PI * 2, true);
       mesh = new THREE.Mesh(new THREE.ExtrudeGeometry(cShape, this.defaultExtrudeSettings), material)
-      mesh.position.z = 0;
+      mesh.position.z = -10;
       scene.add(mesh);
     }
   }
@@ -378,17 +390,14 @@ init()
 
 let bubbleSeeds: Array<BubbleSeed>
 bubbleSeeds = [
-  new BubbleSeed(15, 30),
-  new BubbleSeed(25, 31, 3),
-  new BubbleSeed(12, 22, 1.6),
-  new BubbleSeed(12, 12, 1.6),
-  new BubbleSeed(16, 8, 1),
-  new BubbleSeed(32, 12, 1),
-  new BubbleSeed(40, 18, 3),
-  // new BubbleSeed(0,0,7), 
+  new BubbleSeed(10, 22, 1.6),
+  new BubbleSeed(18, 27, 2.4),
+  new BubbleSeed(23, 21, 3),  
+  new BubbleSeed(32, 13, 1.5),
+  // new BubbleSeed(40, 18, 2.2),
 ];
 var totalLayer = 7
-var eachLayer = 0.9
+var eachLayer = 0.75
 var z = 0
 var scale
 let newSeeds: BubbleSeed[]
@@ -398,7 +407,7 @@ const extrudeSettings = {
   steps: 1,
   depth: 0,
   bevelEnabled: true,
-  bevelThickness: 0.18,
+  bevelThickness: 0.15,
   bevelSize: 0.18,
   bevelOffset: 0,
   bevelSegments: 7  //smooth curved extrusion
@@ -412,17 +421,20 @@ for (let layer: number = 0; layer < totalLayer; layer++) {
     newSeeds.push(new BubbleSeed(b.x, b.y, b.r * scale))
   }
   const bubbleLayer = new BubbleLayer(newSeeds)
-  // bubbleLayer.threshold = 1.6 //smaller => blobbier
+  bubbleLayer.threshold = 1.7 //smaller => blobbier
+  // bubbleLayer.drawSeeds()
   scene.add(new THREE.Mesh(bubbleLayer.getGeom(extrudeSettings, z), material))
 }
 
-exportToObj()
+
+// exportToObj()
 
 function exportToObj() {
   const exporter = new OBJExporter();
   const result = exporter.parse(scene);
   exportToFile("bubble"+Date.now()+".obj",result );
 }
+
 function exportToFile( filename:string, data:any ) {
   var pom = document.createElement( 'a' );
   pom.href = URL.createObjectURL( new Blob( [ data ], { type : 'text/plain'} ) );
@@ -438,3 +450,13 @@ function exportToFile( filename:string, data:any ) {
     pom.click();
   }
 }
+
+/*
+todo add ui for triggering exportToOBJ
+change material 
+add skybox 
+how to load local file 
+add interaction 
+fix grid size bug 
+add animation 
+*/
