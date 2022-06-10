@@ -38,9 +38,15 @@ function init() {
 
   //parameters
   const gui = new GUI();
-  gui.add( guiSettings, 'showSeeds' );  // Checkbox
+  // gui.add( guiSettings, 'showSeeds' );  // Checkbox
   gui.add(guiSettings, 'totalLayer', 1, 27).step(1).onChange(function () {
     //TODO this is triggered if slider is clicked, without changing value
+    addBubbles()
+  })
+  gui.add(guiSettings, 'layerDistance', 0.15, 1).step(0.05).onChange(function () {
+    addBubbles() //todo dont need to reset bubbles
+  })
+  gui.add(guiSettings, 'deflation', 0.8, 2).step(0.1).onChange(function () {
     addBubbles()
   })
   gui.add(guiSettings, 'download obj') // Button
@@ -411,10 +417,10 @@ const extrudeSettings = {
 };
 const guiSettings = {
   showSeeds: false,
-  threshold: 1.7,
   totalLayer: 7,
   layerDistance: 0.75,
   layerVariation: 0.12,
+  deflation: 1.7,
   'download obj': exportToObj
 }
 const material = new THREE.MeshNormalMaterial();
@@ -449,7 +455,7 @@ function getBubblesGeom() {
       newSeeds.push(new BubbleSeed(b.x, b.y, b.r * scale))
     }
     const bubbleLayer = new BubbleLayer(newSeeds)
-    bubbleLayer.threshold = guiSettings.threshold //smaller => blobbier
+    bubbleLayer.threshold = guiSettings.deflation //smaller => blobbier
     // bubbleLayer.drawSeeds()
     layerGeom.push(bubbleLayer.getGeom(extrudeSettings, z))
   }
