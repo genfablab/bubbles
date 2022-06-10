@@ -6,6 +6,12 @@ import { OBJExporter } from 'three/examples/jsm/exporters/OBJExporter.js'
 import { GUI } from 'lil-gui'
 //---- init ----
 let scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer
+
+
+const lineMaterial = new THREE.LineBasicMaterial({
+  color: 0x0000ff
+})
+
 function init() {
   renderer = new THREE.WebGLRenderer({ antialias: true })
   renderer.setPixelRatio(window.devicePixelRatio);
@@ -37,36 +43,28 @@ function init() {
   directionalLight.position.set( 1, 1, 20 ).normalize();
 	scene.add( directionalLight );
   
-
+  //parameters
   const gui = new GUI();
 
-  const myObject = {
-    myBoolean: true,
-    myFunction: function() {  },
-    myString: 'lil-gui',
-    myNumber: 1
+  const guiSettings = {
+    showSeeds: false,
+    fileName: 'bubble',
+    layers: 7,
+    layerDistance: 0.75,
+    'download obj': exportToObj
   };
 
-  gui.add( myObject, 'myBoolean' );  // Checkbox
-  gui.add( myObject, 'myFunction' ); // Button
-  gui.add( myObject, 'myString' );   // Text Field
-  gui.add( myObject, 'myNumber' );   // Number Field
-
-  // Add sliders to number fields by passing min and max
-  gui.add( myObject, 'myNumber', 0, 1 );
-  gui.add( myObject, 'myNumber', 0, 100, 2 ); // snap to even numbers
-
-  // Create dropdowns by passing an array or object of named values
-  gui.add( myObject, 'myNumber', [ 0, 1, 2 ] );
-  gui.add( myObject, 'myNumber', { Label1: 0, Label2: 1, Label3: 2 } );
-
-
+  // gui.add( myObject, 'showSeeds' );  // Checkbox
+  // gui.add( myObject, 'fileName' );   // Text Field
+  gui.add( guiSettings, 'layers', 1, 27).step(1).onChange( function () {
+    setLayers();
+  })
+  gui.add( guiSettings, 'download obj' ); // Button
 }
 
-const lineMaterial = new THREE.LineBasicMaterial({
-  color: 0x0000ff
-})
+function setLayers(){
 
+}
 
 
 // //Scene setup
@@ -449,9 +447,6 @@ for (let layer: number = 0; layer < totalLayer; layer++) {
   // bubbleLayer.drawSeeds()
   scene.add(new THREE.Mesh(bubbleLayer.getGeom(extrudeSettings, z), material))
 }
-
-
-// exportToObj()
 
 function exportToObj() {
   const exporter = new OBJExporter();
