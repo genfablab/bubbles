@@ -28,6 +28,7 @@
     "webpack-dev-server": "^4.9.0"
   },
   "dependencies": {
+    "lil-gui": "^0.16.1",
     "three": "^0.140.2"
   }
 }
