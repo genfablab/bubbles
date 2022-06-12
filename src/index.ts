@@ -393,11 +393,14 @@ let scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRe
 let bubbleSeeds: Array<BubbleSeed>
 let parent: THREE.Object3D, mesh: THREE.Mesh
 bubbleSeeds = [
+  new BubbleSeed(15, 30),
+  new BubbleSeed(25, 31, 3),
   new BubbleSeed(12, 22, 1.6),
-  new BubbleSeed(18, 27, 2.4),
-  new BubbleSeed(23, 21, 3),
-  new BubbleSeed(32, 13, 1.5),
-]
+  new BubbleSeed(12, 12, 1.6),
+  new BubbleSeed(16, 8, 1),
+  new BubbleSeed(32, 12, 1),
+  new BubbleSeed(40, 18, 3),
+  ]
 
 const extrudeSettings = {
   steps: 1,
@@ -461,7 +464,7 @@ function getBubblesGeom() {
   for (let layer: number = 0; layer < guiSettings.totalLayer; layer++) {
     newSeeds = []
     z += guiSettings.layerDistance
-    scale = 1 + layer * guiSettings.layerVariation //* Math.random()
+    scale = 1 + layer * guiSettings.layerVariation * Math.random()
     for (let b of bubbleSeeds) {
       newSeeds.push(new BubbleSeed(b.x, b.y, b.r * scale))
     }
