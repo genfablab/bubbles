@@ -1,5 +1,4 @@
 import * as THREE from 'three'
-import { Shape, Vector2, Vector3, WebGLMultisampleRenderTarget } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { OBJExporter } from 'three/examples/jsm/exporters/OBJExporter.js'
@@ -13,12 +12,9 @@ function init() {
   document.body.appendChild(renderer.domElement)
 
   camera = new THREE.PerspectiveCamera(
-    70, window.innerWidth / window.innerHeight, 0.01, 200
+    50, window.innerWidth / window.innerHeight, 0.01, 250
   );
-  camera.position.x = 5;
-  camera.position.y = 0;
-  camera.position.z = 80;
-  camera.lookAt(new Vector3(0, 0, 0));
+  camera.position.set( 0, 0, 80 );
 
   scene = new THREE.Scene()
   scene.add(camera);
@@ -27,26 +23,26 @@ function init() {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enablePan = true;
 
-  const axesHelper = new THREE.AxesHelper(10);
-  scene.add(axesHelper);
+  // const axesHelper = new THREE.AxesHelper(10);
+  // scene.add(axesHelper);
 
   window.addEventListener('resize', onWindowResize);
 
-  const directionalLight = new THREE.DirectionalLight(0x8FBCD4, 1);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
   directionalLight.position.set(1, 1, 20).normalize();
   scene.add(directionalLight);
 
   //parameters
   const gui = new GUI();
   // gui.add( guiSettings, 'showSeeds' );  // Checkbox
-  gui.add(guiSettings, 'totalLayer', 1, 27).step(1).onChange(function () {
+  gui.add(guiSettings, 'totalLayer', 1, 16).step(1).onChange(function () {
     //TODO this is triggered if slider is clicked, without changing value
     addBubbles()
   })
   gui.add(guiSettings, 'layerDistance', 0.15, 1).step(0.05).onChange(function () {
     addBubbles() //todo dont need to reset bubbles
   })
-  gui.add(guiSettings, 'deflation', 0.8, 2).step(0.1).onChange(function () {
+  gui.add(guiSettings, 'deflation', 0.9, 2).step(0.05).onChange(function () {
     addBubbles()
   })
   gui.add(guiSettings, 'download obj') // Button
@@ -392,9 +388,6 @@ class BubbleSeed {
 }
 
 //setup---------------------------------------------------------------- 
-/*
-bubbleSeeds -> marching squrae/ metaSquare edge segements -> contour -> layer geom buffer
-*/
 
 let scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer
 let bubbleSeeds: Array<BubbleSeed>
@@ -404,7 +397,7 @@ bubbleSeeds = [
   new BubbleSeed(18, 27, 2.4),
   new BubbleSeed(23, 21, 3),
   new BubbleSeed(32, 13, 1.5),
-];
+]
 
 const extrudeSettings = {
   steps: 1,
@@ -414,22 +407,30 @@ const extrudeSettings = {
   bevelSize: 0.18,
   bevelOffset: 0,
   bevelSegments: 7  //smooth curved extrusion
-};
+}
+
 const guiSettings = {
   showSeeds: false,
   totalLayer: 7,
   layerDistance: 0.75,
   layerVariation: 0.12,
-  deflation: 1.7,
+  deflation: 1.75,
   'download obj': exportToObj
 }
-const material = new THREE.MeshNormalMaterial();
+// const material = new THREE.MeshNormalMaterial();
+const material = new THREE.MeshPhysicalMaterial({
+  roughness: 0.27,
+  transmission: 0.64,
+  opacity: 0,
+})
+material.thickness = 0.01 
+material.roughness = 0.7
 const lineMaterial = new THREE.LineBasicMaterial({
   color: 0x0000ff
 })
 
 init()
-addBubbles();
+addBubbles()
 
 function addBubbles(){
   if (mesh !== undefined) {
@@ -437,8 +438,17 @@ function addBubbles(){
     parent.remove(mesh);
     mesh.geometry.dispose();
   }
-  mesh = new THREE.Mesh(getBubblesGeom(), material)
+  const geom = getBubblesGeom()
+  geom.computeBoundingBox()
+  let center = new THREE.Vector3()
+  geom.boundingBox.getCenter(center)
+  // console.log(center)
+  mesh = new THREE.Mesh(geom, material)
+  mesh.position.x = -center.x
+  mesh.position.y = -center.y
   parent.add(mesh)
+  
+
 }
 
 
@@ -447,10 +457,11 @@ function getBubblesGeom() {
   var scale
   let layerGeom: THREE.BufferGeometry[] = []
   let newSeeds: BubbleSeed[]
+  //bubbleSeeds -> marching squrae/ metaSquare edge segements -> contour -> layer geom buffer
   for (let layer: number = 0; layer < guiSettings.totalLayer; layer++) {
     newSeeds = []
     z += guiSettings.layerDistance
-    scale = 1 + layer * guiSettings.layerVariation * Math.random()
+    scale = 1 + layer * guiSettings.layerVariation //* Math.random()
     for (let b of bubbleSeeds) {
       newSeeds.push(new BubbleSeed(b.x, b.y, b.r * scale))
     }
