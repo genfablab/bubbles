@@ -158,10 +158,12 @@ class BubbleLayer {
   implementation https://openprocessing.org/sketch/375385 
   */
   constructor(_seeds: Array<BubbleSeed>) {
+    //grid size 
     //100,1
     //280 0.5 
+    //500 0.25 
     this.cellNum = 500
-    this.cellSize = 0.25 //todoBUG finite options for cellsize.for other cellsizes NONE of the coordinates matches. 
+    this.cellSize = 0.5 //todoBUG finite options for cellsize.for other cellsizes NONE of the coordinates matches. 
     this.cells = [...Array(this.cellNum + 1)].map(e => Array(this.cellNum + 1).fill(0))
     this.seeds = _seeds
     this.threshold = 1.6 //default
@@ -393,13 +395,13 @@ let scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRe
 let bubbleSeeds: Array<BubbleSeed>
 let parent: THREE.Object3D, mesh: THREE.Mesh
 bubbleSeeds = [
-  new BubbleSeed(15, 30),
-  new BubbleSeed(25, 31, 3),
-  new BubbleSeed(12, 22, 1.6),
-  new BubbleSeed(12, 12, 1.6),
-  new BubbleSeed(16, 8, 1),
-  new BubbleSeed(32, 12, 1),
-  new BubbleSeed(40, 18, 3),
+  new BubbleSeed(25, 30),
+  new BubbleSeed(35, 31, 3),
+  new BubbleSeed(22, 22, 1.6),
+  new BubbleSeed(22, 12, 1.6),
+  new BubbleSeed(26, 8, 1),
+  new BubbleSeed(42, 12, 1),
+  new BubbleSeed(50, 18, 3),
   ]
 
 const extrudeSettings = {
