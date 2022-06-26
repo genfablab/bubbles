@@ -12,9 +12,9 @@ function init() {
   document.body.appendChild(renderer.domElement)
 
   camera = new THREE.PerspectiveCamera(
-    50, window.innerWidth / window.innerHeight, 0.01, 250
+    50, window.innerWidth / window.innerHeight, 0.01, 1000
   );
-  camera.position.set( 0, 0, 80 );
+  camera.position.set(0, 0, 400);
 
   scene = new THREE.Scene()
   scene.add(camera);
@@ -23,8 +23,8 @@ function init() {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enablePan = true;
 
-  // const axesHelper = new THREE.AxesHelper(10);
-  // scene.add(axesHelper);
+  const axesHelper = new THREE.AxesHelper(10);
+  scene.add(axesHelper);
 
   window.addEventListener('resize', onWindowResize);
 
@@ -39,10 +39,10 @@ function init() {
     //TODO this is triggered if slider is clicked, without changing value
     addBubbles()
   })
-  gui.add(guiSettings, 'layerDistance', 0.15, 1).step(0.05).onChange(function () {
+  gui.add(guiSettings, 'layerDistance', 0.15, 5).step(0.05).onChange(function () {
     addBubbles() //todo dont need to reset bubbles
   })
-  gui.add(guiSettings, 'deflation', 0.9, 2).step(0.05).onChange(function () {
+  gui.add(guiSettings, 'deflation', 0.9, 6).step(0.5).onChange(function () {
     addBubbles()
   })
   gui.add(guiSettings, 'download obj') // Button
@@ -147,8 +147,8 @@ class BubbleLayer {
     steps: 1,
     depth: 0,
     bevelEnabled: true,
-    bevelThickness: 0.18,
-    bevelSize: 0.18,
+    bevelThickness: 0.15,
+    bevelSize: 0.15,
     bevelOffset: 0,
     bevelSegments: 7  //smooth curved extrusion
   }
@@ -162,8 +162,8 @@ class BubbleLayer {
     //100,1
     //280 0.5 
     //500 0.25 
-    this.cellNum = 500
-    this.cellSize = 0.5 //todoBUG finite options for cellsize.for other cellsizes NONE of the coordinates matches. 
+    this.cellNum = 1000
+    this.cellSize = 1 //todoBUG finite options for cellsize.for other cellsizes NONE of the coordinates matches. 
     this.cells = [...Array(this.cellNum + 1)].map(e => Array(this.cellNum + 1).fill(0))
     this.seeds = _seeds
     this.threshold = 1.6 //default
@@ -395,31 +395,43 @@ let scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRe
 let bubbleSeeds: Array<BubbleSeed>
 let parent: THREE.Object3D, mesh: THREE.Mesh
 bubbleSeeds = [
-  new BubbleSeed(25, 30),
-  new BubbleSeed(35, 31, 3),
-  new BubbleSeed(22, 22, 1.6),
-  new BubbleSeed(22, 12, 1.6),
-  new BubbleSeed(26, 8, 1),
-  new BubbleSeed(42, 12, 1),
-  new BubbleSeed(50, 18, 3),
-  ]
+  new BubbleSeed(10,138.6,20.59126028),
+  new BubbleSeed(62.2, 110.9, 13.26649916),
+  new BubbleSeed(73.4, 171.3, 21.54065923),
+  new BubbleSeed(92.8, 130.9, 17.29161647),
+  new BubbleSeed(116.9, 153.7, 21.3541565),
+  new BubbleSeed(157.5, 126.1, 12.32882801),
+  new BubbleSeed(195.5, 122.9, 8.602325267),
+  new BubbleSeed(214.6, 158.3, 18.27566688),
+  new BubbleSeed(301.1, 122, 9.055385138),
+  new BubbleSeed(187.6, 103, 8.185352772),
+  new BubbleSeed(219, 99, 6.782329983),
+  new BubbleSeed(245.4, 119.1, 19.13112647),
+  new BubbleSeed(231.9, 101.2, 16.43167673),
+  new BubbleSeed(266.1, 95.6, 14.49137675),
+  new BubbleSeed(108.9, 57.6, 9.486832981),
+  new BubbleSeed(102.1, 33.5, 15.8113883),
+  new BubbleSeed(340.5, 22.3, 7.071067812),
+  new BubbleSeed(72.9, 10, 23.28089345),
+]
+
 
 const extrudeSettings = {
   steps: 1,
   depth: 0,
   bevelEnabled: true,
-  bevelThickness: 0.15,
-  bevelSize: 0.18,
+  bevelThickness: 1, //0.15,
+  bevelSize: 1,
   bevelOffset: 0,
   bevelSegments: 7  //smooth curved extrusion
 }
 
 const guiSettings = {
   showSeeds: false,
-  totalLayer: 7,
-  layerDistance: 0.75,
-  layerVariation: 0.12,
-  deflation: 1.75,
+  totalLayer: 4,
+  layerDistance: 2, //0.75,
+  layerVariation: 0.13,// 0.12,
+  deflation: 5.3, //1.75,
   'download obj': exportToObj
 }
 // const material = new THREE.MeshNormalMaterial();
@@ -428,7 +440,7 @@ const material = new THREE.MeshPhysicalMaterial({
   transmission: 0.64,
   opacity: 0,
 })
-material.thickness = 0.01 
+material.thickness = 0.01
 material.roughness = 0.7
 const lineMaterial = new THREE.LineBasicMaterial({
   color: 0x0000ff
@@ -437,7 +449,7 @@ const lineMaterial = new THREE.LineBasicMaterial({
 init()
 addBubbles()
 
-function addBubbles(){
+function addBubbles() {
   if (mesh !== undefined) {
     console.log("remvoe old mesh")
     parent.remove(mesh);
@@ -452,23 +464,26 @@ function addBubbles(){
   mesh.position.x = -center.x
   mesh.position.y = -center.y
   parent.add(mesh)
-  
+
 
 }
 
 
 function getBubblesGeom() {
   var z = 0
-  var scale
+  var scale 
   let layerGeom: THREE.BufferGeometry[] = []
   let newSeeds: BubbleSeed[]
+  const xOffset = 100
+  const yOffset = 100
+  
   //bubbleSeeds -> marching squrae/ metaSquare edge segements -> contour -> layer geom buffer
   for (let layer: number = 0; layer < guiSettings.totalLayer; layer++) {
     newSeeds = []
     z += guiSettings.layerDistance
-    scale = 1 + layer * guiSettings.layerVariation * Math.random()
+    scale = 1 + layer * guiSettings.layerVariation // * Math.random()
     for (let b of bubbleSeeds) {
-      newSeeds.push(new BubbleSeed(b.x, b.y, b.r * scale))
+      newSeeds.push(new BubbleSeed(b.x+xOffset, b.y+yOffset, b.r * scale))
     }
     const bubbleLayer = new BubbleLayer(newSeeds)
     bubbleLayer.threshold = guiSettings.deflation //smaller => blobbier
@@ -489,7 +504,7 @@ function exportToObj() {
   const result = exporter.parse(scene)
   const date = new Date()
   const timestamp = date.getFullYear().toString() + '_' + (date.getMonth() + 1) + date.getHours() + '_' + date.getMinutes() + date.getSeconds()
-  exportToFile("bubbles_" + timestamp + ".obj", result);
+  exportToFile("glacier_" + timestamp + ".obj", result);
 }
 
 function exportToFile(filename: string, data: any) {
