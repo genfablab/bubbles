@@ -15,7 +15,7 @@ function init() {
   camera = new THREE.PerspectiveCamera(
     50, window.innerWidth / window.innerHeight, 0.01, 1000
   );
-  camera.position.set(0, 0, 800);
+  camera.position.set(0, 0, 400);
 
   scene = new THREE.Scene()
   scene.add(camera);
@@ -447,10 +447,10 @@ const xOffset = 100
 const yOffset = 100
 
 const params = {
-  totalLayer:5 , //10,
+  totalLayer:7 , //10,
   extrusionThickness: 1.27, //in cm 
   layerDistance: 2.54, //0.75,
-  layerVariation: 0.05,// 0.12,
+  layerVariation: 0.12, //0.05,// 0.12,
   deflation: 5.3, //1.75,
 
   outlineOnly: false,
@@ -463,7 +463,7 @@ const extrudeSettings = {
   depth: 0,
   bevelEnabled: true,
   bevelThickness: params.extrusionThickness, 
-  bevelSize: 0, //0 means straight edge 
+  bevelSize: 0, //0 means straight edge or bevelthickness for rounded  
   bevelOffset: 0,
   bevelSegments: 7  //smooth curved extrusion
 }
@@ -509,7 +509,7 @@ function addOutline(){
   for (let layer: number = 0; layer < params.totalLayer; layer++) {
     newSeeds = []
     z += params.layerDistance
-    scale = 1 + layer * params.layerVariation // * Math.random()
+    scale = 1 + layer * params.layerVariation  // * Math.random()
     for (let b of bubbleSeeds) {
       newSeeds.push(new BubbleSeed(b.x+xOffset, b.y+yOffset, b.r * scale))
     }
@@ -560,7 +560,7 @@ function getBubblesGeom() {
   for (let layer: number = 0; layer < params.totalLayer; layer++) {
     newSeeds = []
     z += params.layerDistance
-    scale = 1 + layer * params.layerVariation // * Math.random()
+    scale = 1 + layer * params.layerVariation //* ((layer+1)%2)// * Math.random()
     for (let b of bubbleSeeds) {
       newSeeds.push(new BubbleSeed(b.x+xOffset, b.y+yOffset, b.r * scale))
     }
