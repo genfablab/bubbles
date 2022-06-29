@@ -46,12 +46,12 @@ function init() {
   gui.add(params, 'layerDistance', 0.15, 5).step(0.05).onChange(function () {
     addBubbles() //todo dont need to reset bubbles
   })
-  gui.add(params, 'roundedEdge').onChange(function(){addBubbles()}) //todo add funciton 
+  
   gui.add(params, 'deflation', 0.9, 6).step(0.5).onChange(function () {
     addBubbles()
   })
   gui.add(params, 'download obj') // Button
-  gui.add(params, 'outlineOnly' ) // Checkbox
+  // gui.add(params, 'outlineOnly' ) // Checkbox
   gui.add(params, 'download svg') // Button
 
   bubbleObject = new THREE.Object3D()
@@ -159,7 +159,7 @@ class BubbleLayer { //one for each layer of merged bubbles
     depth: 0,
     bevelEnabled: true,
     bevelThickness: 1,
-    bevelSize: 1,
+    bevelSize: 1,  
     bevelOffset: 0,
     bevelSegments: 7  //smooth curved extrusion
   }
@@ -397,7 +397,7 @@ class BubbleLayer { //one for each layer of merged bubbles
         points.push(new THREE.Vector2(v[0], v[1]))
       }
       
-      console.log(points)
+      // console.log(points)
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
       const line = new THREE.Line(geometry, lineMaterial);
       scene.add(line);
@@ -447,12 +447,12 @@ const xOffset = 100
 const yOffset = 100
 
 const params = {
-  totalLayer: 4,
-  layerDistance: 3, //0.75,
-  extrusionThickness: 1,
-  layerVariation: 0.13,// 0.12,
+  totalLayer:5 , //10,
+  extrusionThickness: 1.27, //in cm 
+  layerDistance: 2.54, //0.75,
+  layerVariation: 0.05,// 0.12,
   deflation: 5.3, //1.75,
-  roundedEdge: true,
+
   outlineOnly: false,
   showSeeds: false, //todo : on change 
   'download obj': downloadObj,
@@ -461,28 +461,28 @@ const params = {
 const extrudeSettings = {
   steps: 1,
   depth: 0,
-  bevelEnabled: params.roundedEdge,
+  bevelEnabled: true,
   bevelThickness: params.extrusionThickness, 
-  bevelSize: params.extrusionThickness,
+  bevelSize: 0, //0 means straight edge 
   bevelOffset: 0,
   bevelSegments: 7  //smooth curved extrusion
 }
 
-const debugMaterial = new THREE.MeshNormalMaterial();
 const material = new THREE.MeshPhysicalMaterial({ //todo translucency 
   roughness: 0.27,
   transmission: 0.64,
-  opacity: 0.5,
+  transparent: true ,
+  opacity: 0.3
 })
 material.thickness = 0.01
 material.roughness = 0.7
+
 const lineMaterial = new THREE.LineBasicMaterial({
   color: 0x0000ff
 })
 
 init()
 addBubbles()
-// addBox()
 // addOutline()
 
 function addBox(){
@@ -493,7 +493,7 @@ function addBox(){
     points.push(new THREE.Vector2(100,0))
     points.push(new THREE.Vector2(100,100))
     points.push(new THREE.Vector2(0,100))
-    console.log(points)
+    // console.log(points)
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
     const line = new THREE.Line(geometry, lineMaterial);
     lineObject.add(line); 
@@ -517,7 +517,6 @@ function addOutline(){
     bubbleLayer.threshold = params.deflation //smaller => blobbier
     bubbleLayer.update()
     for (let l of bubbleLayer.loops) {
-      console.log(l) 
       const points = []
       for (let v of l.vertices) {
         points.push(new THREE.Vector2(v[0], v[1]))
@@ -530,11 +529,7 @@ function addOutline(){
 }
 
 function addBubbles() {
-  if (mesh !== undefined) {
-    console.log("remvoe old mesh")
-    bubbleObject.remove(mesh);
-    mesh.geometry.dispose();
-  }
+  removeMesh()
   const geom = getBubblesGeom()
   geom.computeBoundingBox()
   let center = new THREE.Vector3()
@@ -544,6 +539,13 @@ function addBubbles() {
   mesh.position.x = -center.x //todo move camera? 
   mesh.position.y = -center.y
   bubbleObject.add(mesh)
+}
+function removeMesh(){
+  if (mesh !== undefined) {
+    console.log("remvoe old mesh")
+    bubbleObject.remove(mesh);
+    mesh.geometry.dispose();
+  }
 }
 
 function getBubblesGeom() {
@@ -605,14 +607,13 @@ function exportToFile(filename: string, data: any) {
 }
 
 function downloadSVG(){
-  addOutline()
-  // removeBubbles()
+  removeMesh()  //todo could just make mesh invisible 
+  addOutline() //add the outlines to the scence , take a screenshot , and remove it. this won't show on screen. 
   exportToSVG('outline')
-  
-  //remove the lines after export
-  if (lineObject!=undefined){
+  if (lineObject!=undefined){ //remove the lines after export 
     scene.remove(lineObject)
   }
+  addBubbles() //add bubbles back in 
 }
 
 function exportToSVG(filename: string){   //https://jsfiddle.net/9y0b3wet/ 
@@ -621,7 +622,7 @@ function exportToSVG(filename: string){   //https://jsfiddle.net/9y0b3wet/
   rendererSVG.render( scene, camera );		
 
   var XMLS = new XMLSerializer(); 
-  var svgfile = XMLS.serializeToString(rendererSVG.domElement);  // only tested on mesh normal material 
+  var svgfile = XMLS.serializeToString(rendererSVG.domElement);  
   
   var svgData = svgfile;
   var preface = '<?xml version="1.0" standalone="no"?>\r\n';
