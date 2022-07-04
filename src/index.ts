@@ -15,7 +15,8 @@ function init() {
   camera = new THREE.PerspectiveCamera(
     50, window.innerWidth / window.innerHeight, 0.01, 1000
   );
-  camera.position.set(0, 0, 400);
+  camera.position.set(0, 0, 500)
+  
 
   scene = new THREE.Scene()
   scene.add(camera);
@@ -24,8 +25,8 @@ function init() {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enablePan = true;
 
-  // const axesHelper = new THREE.AxesHelper(10);
-  // scene.add(axesHelper);
+  const axesHelper = new THREE.AxesHelper(10);
+  scene.add(axesHelper);
 
   window.addEventListener('resize', onWindowResize);
 
@@ -54,9 +55,7 @@ function init() {
   // gui.add(params, 'outlineOnly' ) // Checkbox
   gui.add(params, 'download svg') // Button
 
-  bubbleObject = new THREE.Object3D()
-  scene.add(bubbleObject)
-
+  initBubbleObject()
   lineObject = new THREE.Object3D()
   scene.add(lineObject)
 }
@@ -429,7 +428,8 @@ bubbleSeeds = [
   new BubbleSeed(73.4, 171.3, 21.54065923),
   new BubbleSeed(92.8, 130.9, 17.29161647),
   new BubbleSeed(116.9, 153.7, 21.3541565),
-  new BubbleSeed(157.5, 126.1, 12.32882801),
+  new BubbleSeed(157.5, 126.1, 12.32882801), //6
+  new BubbleSeed(182.4,153.4,16.1864141),
   new BubbleSeed(195.5, 122.9, 8.602325267),
   new BubbleSeed(214.6, 158.3, 18.27566688),
   new BubbleSeed(301.1, 122, 9.055385138),
@@ -438,7 +438,7 @@ bubbleSeeds = [
   new BubbleSeed(245.4, 119.1, 19.13112647),
   new BubbleSeed(231.9, 101.2, 16.43167673),
   new BubbleSeed(266.1, 95.6, 14.49137675),
-  new BubbleSeed(108.9, 57.6, 9.486832981),
+  new BubbleSeed(108.9, 57.6, 9.486832981),//16
   new BubbleSeed(102.1, 33.5, 15.8113883),
   new BubbleSeed(340.5, 22.3, 7.071067812),
   new BubbleSeed(72.9, 10, 23.28089345),
@@ -447,7 +447,7 @@ const xOffset = 100
 const yOffset = 100
 
 const params = {
-  totalLayer:7 , //10,
+  totalLayer: 5 , //10,
   extrusionThickness: 1.27, //in cm 
   layerDistance: 2.54, //0.75,
   layerVariation: 0.12, //0.05,// 0.12,
@@ -482,7 +482,7 @@ const lineMaterial = new THREE.LineBasicMaterial({
 })
 
 init()
-addBubbles()
+addBubbles() //add northern semisphere 
 // addOutline()
 
 function addBox(){
@@ -496,7 +496,7 @@ function addBox(){
     // console.log(points)
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
     const line = new THREE.Line(geometry, lineMaterial);
-    lineObject.add(line); 
+    lineObject.add(line);  //this only works once TODO 
 }
 
 function addOutline(){ 
@@ -529,28 +529,47 @@ function addOutline(){
 }
 
 function addBubbles() {
-  removeMesh()
-  const geom = getBubblesGeom()
-  geom.computeBoundingBox()
-  let center = new THREE.Vector3()
-  geom.boundingBox.getCenter(center)
-  // console.log(center)
+  
+  initBubbleObject()
+  let geom = getBubblesGeom(bubbleSeeds.slice(0,15))
   mesh = new THREE.Mesh(geom, material)
-  mesh.position.x = -center.x //todo move camera? 
-  mesh.position.y = -center.y
+  // geom.computeBoundingBox()
+  // let center = new THREE.Vector3()
+  // geom.boundingBox.getCenter(center)
+  // console.log(center)
+  // mesh.position.x = -center.x //todo move camera? 
+  // mesh.position.y = -center.y
+  
+  bubbleObject.add(mesh)
+ //TODO THIS CAUSES THE FIRST MESH TO NOT BE DELETETD 
+  geom = getBubblesGeom(bubbleSeeds.slice(15))
+  mesh = new THREE.Mesh(geom, material)
   bubbleObject.add(mesh)
 }
+
 function removeMesh(){
-  if (mesh !== undefined) {
-    console.log("remvoe old mesh")
-    bubbleObject.remove(mesh);
-    mesh.geometry.dispose();
-  }
+  // if (mesh !== undefined) {
+  //   console.log("remvoe old mesh")
+  //   bubbleObject.remove(mesh);
+  //   mesh.geometry.dispose();
+  // }
 }
 
-function getBubblesGeom() {
+function initBubbleObject(){
+  let object = scene.getObjectByName('bubbleObject')
+  if(object!= undefined){
+    scene.remove(object)
+  }
+
+  bubbleObject = new THREE.Object3D()
+  bubbleObject.name = 'bubbleObject'
+  scene.add(bubbleObject)
+
+}
+
+function getBubblesGeom(_seeds: Array<BubbleSeed>) {
   var z = 0
-  var scale 
+  var scale  //this will be 1 if each seed's r is fed by data! 
   let layerGeom: THREE.BufferGeometry[] = []
   let newSeeds: BubbleSeed[]
   const xOffset = 100
@@ -561,8 +580,8 @@ function getBubblesGeom() {
     newSeeds = []
     z += params.layerDistance
     scale = 1 + layer * params.layerVariation //* ((layer+1)%2)// * Math.random()
-    for (let b of bubbleSeeds) {
-      newSeeds.push(new BubbleSeed(b.x+xOffset, b.y+yOffset, b.r * scale))
+    for (let s of _seeds) {
+      newSeeds.push(new BubbleSeed(s.x+xOffset, s.y+yOffset, s.r * scale))
     }
     const bubbleLayer = new BubbleLayer(newSeeds)
     bubbleLayer.threshold = params.deflation //smaller => blobbier
@@ -580,6 +599,40 @@ function getBubblesGeom() {
   }
   return null
 }
+
+
+// function getBubblesGeom(seeds: Array<BubbleSeed>) {
+//   var z = 0
+//   var scale 
+//   let layerGeom: THREE.BufferGeometry[] = []
+//   let newSeeds: BubbleSeed[]
+//   const xOffset = 100
+//   const yOffset = 100
+  
+//   //bubbleSeeds -> marching square/ metaSquare edge segements -> contour -> layer geom buffer
+//   for (let layer: number = 0; layer < params.totalLayer; layer++) {
+//     newSeeds = []
+//     z += params.layerDistance
+//     scale = 1 + layer * params.layerVariation //* ((layer+1)%2)// * Math.random()
+//     for (let b of bubbleSeeds) {
+//       newSeeds.push(new BubbleSeed(b.x+xOffset, b.y+yOffset, b.r * scale))
+//     }
+//     const bubbleLayer = new BubbleLayer(newSeeds)
+//     bubbleLayer.threshold = params.deflation //smaller => blobbier
+//     if (layer == 0 && params.showSeeds ){
+//       bubbleLayer.drawSeeds()
+//     }
+//     layerGeom.push(bubbleLayer.getExtrudedGeom(extrudeSettings, z))
+    
+//   }
+//   if (layerGeom.length > 0) {
+//     const mergedGeom = mergeBufferGeometries(layerGeom)
+//     return mergedGeom
+//   } else { //TODO deal with it 
+//     console.log('no loop exists')
+//   }
+//   return null
+// }
 
 
 function downloadObj() {
@@ -607,7 +660,7 @@ function exportToFile(filename: string, data: any) {
 }
 
 function downloadSVG(){
-  removeMesh()  //todo could just make mesh invisible 
+  initBubbleObject() //todo could just make mesh invisible 
   addOutline() //add the outlines to the scence , take a screenshot , and remove it. this won't show on screen. 
   exportToSVG('outline')
   if (lineObject!=undefined){ //remove the lines after export 
