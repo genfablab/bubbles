@@ -622,7 +622,7 @@ function exportToFile(filename: string, data: any) {
   }
   else {
     pom.click();
-  }  
+  }   
 }
 
 function downloadSVG(){
