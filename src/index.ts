@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { OBJExporter } from 'three/examples/jsm/exporters/OBJExporter.js'
 import { GUI } from 'lil-gui'
-import {SVGRenderer} from 'three/examples/jsm/renderers/SVGRenderer'
+import { SVGRenderer } from 'three/examples/jsm/renderers/SVGRenderer'
 
 function init() {
   renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -18,7 +18,7 @@ function init() {
   );
   // camera.setViewOffset( window.innerWidth, window.innerHeight, camX,camY, window.innerWidth, window.innerHeight )
   camera.position.set(0, 0, 500)
-  
+
 
   scene = new THREE.Scene()
   scene.add(camera);
@@ -38,63 +38,35 @@ function init() {
 
   //build GUI 
   const gui = new GUI();
-  
-  gui.add(params, 'showSeeds' );  // Checkbox
-  
+
+  gui.add(params, 'showOutline').onChange(function () { // Checkbox
+    scene.getObjectByName('lineObject').visible = params.showOutline
+  })
+
   gui.add(params, 'totalLayer', 1, 16).step(1).onChange(function () {
     //TODO this is triggered if slider is clicked, without changing value
     addBubbles()
-    addOutline()
+
   })
-  gui.add(params, 'extrusionThickness',0.5, 3).step(0.5).onChange(function(){
+  gui.add(params, 'extrusionThickness', 0.5, 3).step(0.5).onChange(function () {
     addBubbles()
-    addOutline()})
+  })
   gui.add(params, 'layerDistance', 0.15, 5).step(0.05).onChange(function () {
     addBubbles() //todo dont need to reset bubbles
-    addOutline()
+
   })
-  gui.add(params, 'layerVariation', 0.0,0.5).step(0.05).onChange(function(){addBubbles()})
+  // gui.add(params, 'layerVariation', 0.0, 0.5).step(0.05).onChange(function () { addBubbles() })
   gui.add(params, 'deflation', 0.9, 6).step(0.5).onChange(function () {
     addBubbles()
-    addOutline()
+
   })
   gui.add(params, 'download obj') // Button
-  // gui.add(params, 'outlineOnly' ) // Checkbox
   gui.add(params, 'download svg') // Button
 
   initBubbleObject()
   initOutline()
 
 }
-
-// //Scene setup
-// const bgScene = new THREE.Scene();
-// let bgMesh;
-// {
-//   const loader = new THREE.TextureLoader();
-//   const texture = loader.load(
-//     '/resources/tears_of_steel_bridge_2k.jpg',
-//   );
-//   texture.magFilter = THREE.LinearFilter;
-//   texture.minFilter = THREE.LinearFilter;
-
-//   const shader = THREE.ShaderLib.equirect;
-//   const material = new THREE.ShaderMaterial({
-//     fragmentShader: shader.fragmentShader,
-//     vertexShader: shader.vertexShader,
-//     uniforms: shader.uniforms,
-//     depthWrite: false,
-//     side: THREE.BackSide,
-//   });
-//   material.uniforms.tEquirect.value = texture;
-//   const plane = new THREE.BoxBufferGeometry(100, 100, 100);
-//   bgMesh = new THREE.Mesh(plane, material);
-//   bgScene.add(bgMesh);
-// }
-
-// bgMesh.position.copy(camera.position);
-// renderer.render(bgScene, camera);
-
 
 // animation
 function animation(time: number) {
@@ -165,7 +137,7 @@ class BubbleLayer { //one for each layer of merged bubbles
     depth: 0,
     bevelEnabled: true,
     bevelThickness: 1,
-    bevelSize: 1,  
+    bevelSize: 1,
     bevelOffset: 0,
     bevelSegments: 7  //smooth curved extrusion
   }
@@ -214,18 +186,18 @@ class BubbleLayer { //one for each layer of merged bubbles
     return null
   }
 
-  getOutline(){ //this returns outline that's intercounnected 
+  getOutline() { //this returns outline that's intercounnected 
     this.update()
     let geomArray: THREE.BufferGeometry[] = []
     for (let l of this.loops) {
-        geomArray.push(new THREE.ShapeGeometry( l.loopShape ))
+      geomArray.push(new THREE.ShapeGeometry(l.loopShape))
     }
     if (geomArray.length > 0) {
       const mergedGeom = mergeBufferGeometries(geomArray)
       // mergedGeom.translate(0, 0, 0)
       return mergedGeom
     }
-    return null 
+    return null
   }
 
   calculateSegments(): void {
@@ -330,9 +302,9 @@ class BubbleLayer { //one for each layer of merged bubbles
     //short straight lines
     const seg = [[x1, y1], [x2, y2]]
     this.segments.push(seg)
-    return 
+    return
     // // DEBUGGING draw segments on scene
-    const lineMaterialSeg = new THREE.LineBasicMaterial({color: 0xff0000});
+    const lineMaterialSeg = new THREE.LineBasicMaterial({ color: 0xff0000 });
     const points = [new THREE.Vector2(x1, y1), new THREE.Vector2(x2, y2)]
     scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMaterialSeg))
   }
@@ -382,7 +354,7 @@ class BubbleLayer { //one for each layer of merged bubbles
   }
 
   drawSeeds(): void {  //debug: go through seeds and add extruded circles 
-    
+
     let cShape: THREE.Shape
     let mesh: THREE.Mesh
     const material = new THREE.MeshNormalMaterial();
@@ -396,13 +368,13 @@ class BubbleLayer { //one for each layer of merged bubbles
   }
 
   drawWiredLoops(): void { //debug: draw loops 
-    
+
     for (var l of this.loops) {
       const points = []
       for (let v of l.vertices) {
         points.push(new THREE.Vector2(v[0], v[1]))
       }
-      
+
       // console.log(points)
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
       const line = new THREE.Line(geometry, lineMaterial);
@@ -427,16 +399,16 @@ class BubbleSeed {
 //setup---------------------------------------------------------------- 
 let scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer
 let bubbleSeeds: Array<BubbleSeed>
-let bubbleObject: THREE.Object3D, scaleOverYears:number[]
+let bubbleObject: THREE.Object3D, scaleOverYears: number[]
 let lineObject: THREE.Object3D, mesh: THREE.Mesh
 bubbleSeeds = [
-  new BubbleSeed(10,138.6,20.59126028),
+  new BubbleSeed(10, 138.6, 20.59126028),
   new BubbleSeed(62.2, 110.9, 13.26649916),
   new BubbleSeed(73.4, 171.3, 20.976177),
   new BubbleSeed(92.8, 130.9, 17.29161647),
-  new BubbleSeed(116.9, 153.7, 21.3541565),
+  new BubbleSeed(116.9, 153.7, 20.976177),
   new BubbleSeed(157.5, 126.1, 12.32882801), //6
-  new BubbleSeed(182.4,153.4,16.1864141),
+  new BubbleSeed(182.4, 153.4, 16.1864141),
   new BubbleSeed(195.5, 122.9, 8.602325267),
   new BubbleSeed(214.6, 158.3, 18.27566688),
   new BubbleSeed(301.1, 122, 9.055385138),
@@ -455,20 +427,20 @@ scaleOverYears = [
   9.5,
   15.5,
   20,
-  22.8 
+  22.8
 ]
 const xOffset = 100
 const yOffset = 100
 
 const params = {
-  totalLayer:  5,
+  totalLayer: 5,
   extrusionThickness: 1.27, //in cm 
-  layerDistance: 2.54, //0.75,
-  layerVariation: 0.12, //0.05, 
+  layerDistance: 2.54+0.01, //0.75,
+  // layerVariation: 0.12, //0.05, 
   deflation: 5.3, //1.75,
 
   outlineOnly: false,
-  showSeeds: false, //todo : on change 
+  showOutline: true,
   'download obj': downloadObj,
   'download svg': downloadSVG,
 }
@@ -476,7 +448,7 @@ const extrudeSettings = {
   steps: 1,
   depth: 0,
   bevelEnabled: true,
-  bevelThickness: params.extrusionThickness, 
+  bevelThickness: params.extrusionThickness,
   bevelSize: 0, //0 means straight edge or bevelthickness for rounded  
   bevelOffset: 0,
   bevelSegments: 7  //smooth curved extrusion
@@ -485,7 +457,7 @@ const extrudeSettings = {
 const material = new THREE.MeshPhysicalMaterial({ //todo translucency 
   roughness: 0.27,
   transmission: 0.64,
-  transparent: true ,
+  transparent: true,
   opacity: 0.3
 })
 material.thickness = 0.01
@@ -496,64 +468,76 @@ const lineMaterial = new THREE.LineBasicMaterial({
 })
 
 init()
-addBubbles() 
-addOutline()
-
-function addOutline(){ 
-  initOutline()
-  var z = 0
-  var scale 
-  let layerGeom: THREE.BufferGeometry[] = []
-  let newSeeds: BubbleSeed[]  
-  //bubbleSeeds -> marching square/ metaSquare edge segements -> contour -> layer geom buffer
-  for (let layer: number = 0; layer < params.totalLayer; layer++) {
-    newSeeds = []
-    z += params.layerDistance
-    scale = 1 + layer * params.layerVariation  // * Math.random()
-    for (let b of bubbleSeeds) {
-      newSeeds.push(new BubbleSeed(b.x+xOffset, b.y+yOffset, b.r * scale))
-    }
-    const bubbleLayer = new BubbleLayer(newSeeds)
-    bubbleLayer.threshold = params.deflation //smaller => blobbier
-    bubbleLayer.update()
-
-    for (let l of bubbleLayer.loops) {
-      const points = []
-      for (let v of l.vertices) {
-        points.push(new THREE.Vector2(v[0], v[1]))
-      }
-      const geometry = new THREE.BufferGeometry().setFromPoints(points);
-      const line = new THREE.Line(geometry, lineMaterial);
-      lineObject.add(line); 
-    } 
-  }
-}
+addBubbles()
 
 function addBubbles() {
-  
+
   initBubbleObject()
-  var geom: THREE.BufferGeometry 
-  geom = getBubblesGeom(bubbleSeeds) 
-  // geom = getBubblesGeom(bubbleSeeds.slice(0,15)) //northerm semisphere 
-  mesh = new THREE.Mesh(geom, material)
-  bubbleObject.add(mesh)
+  initOutline()
+
+
+  // var arctic = [
+  //   bubbleSeeds[2],
+  //   bubbleSeeds[4],
+  //   bubbleSeeds[6],
+  //   bubbleSeeds[8],
+  // ]
+  // var antarctic = [
+  //   bubbleSeeds[18]
+  // ]
+  // var rest = [
+  //   bubbleSeeds[0],
+  //   bubbleSeeds[1],
+  //   bubbleSeeds[3],
+  //   bubbleSeeds[5],
+  //   bubbleSeeds[15],
+  //   bubbleSeeds[16], //america 
+  //   bubbleSeeds[7],
+  //   bubbleSeeds[9],
+  //   bubbleSeeds[10],
+  //   bubbleSeeds[11],
+  //   bubbleSeeds[12],
+  //   bubbleSeeds[13],
+  //   bubbleSeeds[14],
+  //   bubbleSeeds[17], //euroasia 
+
+  // ]
+  // var america = [
+  //   bubbleSeeds[0],
+  //   bubbleSeeds[1],
+  //   bubbleSeeds[3],
+  //   bubbleSeeds[5],
+  //   bubbleSeeds[15],
+  //   bubbleSeeds[16],
+  // ]
+
+  // var euroasia = [
+  //   bubbleSeeds[7],
+  //   bubbleSeeds[9],
+  //   bubbleSeeds[10],
+  //   bubbleSeeds[11],
+  //   bubbleSeeds[12],
+  //   bubbleSeeds[13],
+  //   bubbleSeeds[14],
+  //   bubbleSeeds[17],
+  // ]
+  // bubbleObject.add(new THREE.Mesh(getBubblesGeom(arctic),material))
+  // bubbleObject.add(new THREE.Mesh(getBubblesGeom(antarctic),material))
+  // bubbleObject.add(new THREE.Mesh(getBubblesGeom(rest),material))
   
-  // geom.computeBoundingBox()
-  // let center = new THREE.Vector3()
-  // geom.boundingBox.getCenter(center)
-  // console.log(center)
-  // mesh.position.x = -center.x //todo move camera? 
-  // mesh.position.y = -center.y
-  
-  
-  // geom = getBubblesGeom(bubbleSeeds.slice(15))
-  // mesh = new THREE.Mesh(geom, material)
-  // bubbleObject.add(mesh)
+/////////
+  // var northernHemisphere = bubbleSeeds.slice(0,15)
+  // var southernHemisphere = bubbleSeeds.slice(15)
+  // bubbleObject.add(new THREE.Mesh(getBubblesGeom(northernHemisphere),material))
+  // bubbleObject.add(new THREE.Mesh(getBubblesGeom(southernHemisphere),material))
+
+  bubbleObject.add(new THREE.Mesh(getBubblesGeom(bubbleSeeds),material))
+
 }
 
-function initBubbleObject(){
+function initBubbleObject() {
   let object = scene.getObjectByName('bubbleObject')
-  if(object!= undefined){
+  if (object != undefined) {
     scene.remove(object)
   }
 
@@ -563,14 +547,14 @@ function initBubbleObject(){
 
 }
 
-function initOutline(){
+function initOutline() {
   let object = scene.getObjectByName('lineObject')
-  if(object!= undefined){
+  if (object != undefined) {
     scene.remove(object)
   }
 
   lineObject = new THREE.Object3D()
-  lineObject.name  = 'lineObject'
+  lineObject.name = 'lineObject'
   scene.add(lineObject)
 }
 
@@ -583,14 +567,25 @@ function getBubblesGeom(_seeds: Array<BubbleSeed>) {
   for (let layer: number = 0; layer < params.totalLayer; layer++) {
     newSeeds = []
     z += params.layerDistance
-    scale = 1 + scaleOverYears[layer]*0.018 //layer * params.layerVariation //* ((layer+1)%2)// * Math.random()
+    scale = 1 + scaleOverYears[layer] * 0.018 //layer * params.layerVariation //* ((layer+1)%2)// * Math.random()
     for (let s of _seeds) {
-      newSeeds.push(new BubbleSeed(s.x+xOffset, s.y+yOffset, s.r * scale))
+      newSeeds.push(new BubbleSeed(s.x + xOffset, s.y + yOffset, s.r * scale))
     }
     const bubbleLayer = new BubbleLayer(newSeeds)
     bubbleLayer.threshold = params.deflation //smaller => blobbier
     layerGeom.push(bubbleLayer.getExtrudedGeom(extrudeSettings, z))
     
+    //a bit of mix up: adding lines to the scene.. 
+    for (let l of bubbleLayer.loops) {
+      const points = []
+      for (let v of l.vertices) {
+        points.push(new THREE.Vector2(v[0], v[1]))
+      }
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const line = new THREE.Line(geometry, lineMaterial);
+      lineObject.add(line);
+    }
+
   }
   if (layerGeom.length > 0) {
     const mergedGeom = mergeBufferGeometries(layerGeom)
@@ -622,38 +617,33 @@ function exportToFile(filename: string, data: any) {
   }
   else {
     pom.click();
-  }   
+  }
 }
 
-function downloadSVG(){
-  // initBubbleObject() //todo could just make mesh invisible 
-  scene.getObjectByName('bubbleObject').visible = false 
+function downloadSVG() {
+  scene.getObjectByName('bubbleObject').visible = false
   exportToSVG('outline')
-  // if (lineObject!=undefined){ //remove the lines after export 
-  //   scene.remove(lineObject)
-  // }
   scene.getObjectByName('bubbleObject').visible = true
-  // addBubbles() //add bubbles back in 
 }
 
-function exportToSVG(filename: string){   //https://jsfiddle.net/9y0b3wet/ 
+function exportToSVG(filename: string) {   //https://jsfiddle.net/9y0b3wet/ 
   const rendererSVG = new SVGRenderer();
-  rendererSVG.setSize(window.innerWidth, window.innerHeight);			
-  rendererSVG.render( scene, camera );		
+  rendererSVG.setSize(window.innerWidth, window.innerHeight);
+  rendererSVG.render(scene, camera);
 
-  var XMLS = new XMLSerializer(); 
-  var svgfile = XMLS.serializeToString(rendererSVG.domElement);  
-  
+  var XMLS = new XMLSerializer();
+  var svgfile = XMLS.serializeToString(rendererSVG.domElement);
+
   var svgData = svgfile;
   var preface = '<?xml version="1.0" standalone="no"?>\r\n';
-  var svgBlob = new Blob([preface, svgData], {type:"image/svg+xml;charset=utf-8"});
+  var svgBlob = new Blob([preface, svgData], { type: "image/svg+xml;charset=utf-8" });
   var svgUrl = URL.createObjectURL(svgBlob);
   var downloadLink = document.createElement("a");
   downloadLink.href = svgUrl;
-  downloadLink.download = filename+".svg";
+  downloadLink.download = filename + ".svg";
   document.body.appendChild(downloadLink);
   downloadLink.click();
-  document.body.removeChild(downloadLink);	
+  document.body.removeChild(downloadLink);
 }
 
 
