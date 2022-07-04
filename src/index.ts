@@ -583,7 +583,7 @@ function getBubblesGeom(_seeds: Array<BubbleSeed>) {
   for (let layer: number = 0; layer < params.totalLayer; layer++) {
     newSeeds = []
     z += params.layerDistance
-    scale = 1 + scaleOverYears[layer]*0.01 //layer * params.layerVariation //* ((layer+1)%2)// * Math.random()
+    scale = 1 + scaleOverYears[layer]*0.018 //layer * params.layerVariation //* ((layer+1)%2)// * Math.random()
     for (let s of _seeds) {
       newSeeds.push(new BubbleSeed(s.x+xOffset, s.y+yOffset, s.r * scale))
     }
@@ -626,13 +626,14 @@ function exportToFile(filename: string, data: any) {
 }
 
 function downloadSVG(){
-  initBubbleObject() //todo could just make mesh invisible 
-  // addOutline() //add the outlines to the scence , take a screenshot , and remove it. this won't show on screen. 
+  // initBubbleObject() //todo could just make mesh invisible 
+  scene.getObjectByName('bubbleObject').visible = false 
   exportToSVG('outline')
   // if (lineObject!=undefined){ //remove the lines after export 
   //   scene.remove(lineObject)
   // }
-  addBubbles() //add bubbles back in 
+  scene.getObjectByName('bubbleObject').visible = true
+  // addBubbles() //add bubbles back in 
 }
 
 function exportToSVG(filename: string){   //https://jsfiddle.net/9y0b3wet/ 
