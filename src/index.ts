@@ -4,6 +4,7 @@ import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUt
 import { OBJExporter } from 'three/examples/jsm/exporters/OBJExporter.js'
 import { GUI } from 'lil-gui'
 import { SVGRenderer } from 'three/examples/jsm/renderers/SVGRenderer'
+import { Vector3 } from 'three';
 
 function init() {
   renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -25,9 +26,10 @@ function init() {
   scene.background = new THREE.Color(0x8FBCD4);
 
   const controls = new OrbitControls(camera, renderer.domElement);
+  
   controls.enablePan = true;
 
-  const axesHelper = new THREE.AxesHelper(10);
+  const axesHelper = new THREE.AxesHelper(50);
   scene.add(axesHelper);
 
   window.addEventListener('resize', onWindowResize);
@@ -55,8 +57,8 @@ function init() {
     addBubbles() //todo dont need to reset bubbles
 
   })
-  // gui.add(params, 'layerVariation', 0.0, 0.5).step(0.05).onChange(function () { addBubbles() })
-  gui.add(params, 'deflation', 0.9, 6).step(0.5).onChange(function () {
+  gui.add(params, 'layerVariation', 0.0, 0.5).step(0.01).onChange(function () { addBubbles() })
+  gui.add(params, 'deflation', 0.9, 8).step(0.5).onChange(function () {
     addBubbles()
 
   })
@@ -65,6 +67,8 @@ function init() {
 
   initBubbleObject()
   initOutline()
+
+  
 
 }
 
@@ -151,8 +155,9 @@ class BubbleLayer { //one for each layer of merged bubbles
     //100,1
     //280 0.5 
     //500 0.25 
-    this.cellNum = 1000
-    this.cellSize = 1 //todoBUG finite options for cellsize.for other cellsizes NONE of the coordinates matches. 
+    //1000 1
+    this.cellNum = 2000
+    this.cellSize = 0.5 //todoBUG finite options for cellsize.for other cellsizes NONE of the coordinates matches. 
     this.cells = [...Array(this.cellNum + 1)].map(e => Array(this.cellNum + 1).fill(0))
     this.seeds = _seeds
     this.threshold = 1.6 //default
@@ -436,8 +441,8 @@ const params = {
   totalLayer: 5,
   extrusionThickness: 1.27, //in cm 
   layerDistance: 2.54+0.01, //0.75,
-  // layerVariation: 0.12, //0.05, 
-  deflation: 5.3, //1.75,
+  layerVariation: 0.03, 
+  deflation: 6.3, //1.75,
 
   outlineOnly: false,
   showOutline: true,
@@ -474,7 +479,6 @@ function addBubbles() {
 
   initBubbleObject()
   initOutline()
-
 
   // var arctic = [
   //   bubbleSeeds[2],
@@ -563,11 +567,12 @@ function getBubblesGeom(_seeds: Array<BubbleSeed>) {
   var scale  //this will be 1 if each seed's r is fed by data! 
   let layerGeom: THREE.BufferGeometry[] = []
   let newSeeds: BubbleSeed[]
+  // var loopIndex = 0
   //bubbleSeeds -> marching square/ metaSquare edge segements -> contour -> layer geom buffer
   for (let layer: number = 0; layer < params.totalLayer; layer++) {
     newSeeds = []
     z += params.layerDistance
-    scale = 1 + scaleOverYears[layer] * 0.018 //layer * params.layerVariation //* ((layer+1)%2)// * Math.random()
+    scale = 1 + scaleOverYears[layer] * params.layerVariation //* ((layer+1)%2)// * Math.random()
     for (let s of _seeds) {
       newSeeds.push(new BubbleSeed(s.x + xOffset, s.y + yOffset, s.r * scale))
     }
@@ -582,6 +587,8 @@ function getBubblesGeom(_seeds: Array<BubbleSeed>) {
         points.push(new THREE.Vector2(v[0], v[1]))
       }
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      
+      // loopIndex++
       const line = new THREE.Line(geometry, lineMaterial);
       lineObject.add(line);
     }
@@ -625,6 +632,14 @@ function downloadSVG() {
   exportToSVG('outline')
   scene.getObjectByName('bubbleObject').visible = true
 }
+
+
+function downloadSVGbyLayer() {
+  scene.getObjectByName('bubbleObject').visible = false
+  exportToSVG('outline')
+  scene.getObjectByName('bubbleObject').visible = true
+}
+
 
 function exportToSVG(filename: string) {   //https://jsfiddle.net/9y0b3wet/ 
   const rendererSVG = new SVGRenderer();
