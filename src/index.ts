@@ -313,6 +313,8 @@ class BubbleLayer { //one for each layer of merged bubbles
     const points = [new THREE.Vector2(x1, y1), new THREE.Vector2(x2, y2)]
     scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMaterialSeg))
   }
+
+  //connect segment into loops
   calculateLoops(): void {
     // console.log("total segements", this.segments.length)
 
@@ -454,7 +456,7 @@ const extrudeSettings = {
   depth: 0,
   bevelEnabled: true,
   bevelThickness: params.extrusionThickness,
-  bevelSize: 0, //0 means straight edge or bevelthickness for rounded  
+  bevelSize: params.extrusionThickness, //0 means straight edge or bevelthickness for rounded  
   bevelOffset: 0,
   bevelSegments: 7  //smooth curved extrusion
 }
