@@ -408,49 +408,39 @@ let scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRe
 let bubbleSeeds: Array<BubbleSeed>
 let bubbleObject: THREE.Object3D, scaleOverYears: number[]
 let lineObject: THREE.Object3D, mesh: THREE.Mesh
-bubbleSeeds = [
-  new BubbleSeed(10, 138.6, 20.59126028),
-  new BubbleSeed(62.2, 110.9, 13.26649916),
-  new BubbleSeed(73.4, 171.3, 20.976177),
-  new BubbleSeed(92.8, 130.9, 17.29161647),
-  new BubbleSeed(116.9, 153.7, 20.976177),
-  new BubbleSeed(157.5, 126.1, 12.32882801), //6
-  new BubbleSeed(182.4, 153.4, 16.1864141),
-  new BubbleSeed(195.5, 122.9, 8.602325267),
-  new BubbleSeed(214.6, 158.3, 18.27566688),
-  new BubbleSeed(301.1, 122, 9.055385138),
-  new BubbleSeed(187.6, 103, 8.185352772),
-  new BubbleSeed(219, 99, 6.782329983),
-  new BubbleSeed(245.4, 119.1, 19.13112647),
-  new BubbleSeed(231.9, 101.2, 16.43167673),
-  new BubbleSeed(266.1, 95.6, 14.49137675),
-  new BubbleSeed(108.9, 57.6, 9.486832981),//16
-  new BubbleSeed(102.1, 33.5, 15.8113883),
-  new BubbleSeed(340.5, 22.3, 7.071067812),
-  new BubbleSeed(72.9, 10, 23.28089345),
-]
-scaleOverYears = [
-  0,
-  9.5,
-  15.5,
-  20,
-  22.8
-]
+
 const xOffset = 100
 const yOffset = 100
 
+bubbleSeeds = [
+  new BubbleSeed(30, 160, 16),
+  new BubbleSeed(100, 210,50),
+  new BubbleSeed(190, 150, 20)
+  ]
+
+scaleOverYears = [
+  0,
+  0.22,
+  -0.17,
+  0.07,
+  0.65,
+  0.1,
+  1
+]
+
 const params = {
-  totalLayer: 5,
-  extrusionThickness: 1.27, //in cm 
-  layerDistance: 2.54+0.01, //0.75,
-  layerVariation: 0.03, 
-  deflation: 6.3, //1.75,
+  totalLayer: 7,
+  extrusionThickness: 3, //in mm 
+  layerDistance: 6+0.01,
+  layerVariation: 0.3, 
+  deflation: 1.8, //1.75,
 
   outlineOnly: false,
   showOutline: true,
   'download obj': downloadObj,
   'download svg': downloadSVG,
 }
+
 const extrudeSettings = {
   steps: 1,
   depth: 0,
@@ -574,7 +564,7 @@ function getBubblesGeom(_seeds: Array<BubbleSeed>) {
   for (let layer: number = 0; layer < params.totalLayer; layer++) {
     newSeeds = []
     z += params.layerDistance
-    scale = 1 + scaleOverYears[layer] * params.layerVariation //* ((layer+1)%2)// * Math.random()
+    scale = 1 + scaleOverYears[layer] //* ((layer+1)%2)// * Math.random()
     for (let s of _seeds) {
       newSeeds.push(new BubbleSeed(s.x + xOffset, s.y + yOffset, s.r * scale))
     }
