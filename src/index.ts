@@ -42,7 +42,7 @@ function init() {
   gui.add(guiSettings, 'layerDistance', 0.15, 1).step(0.05).onChange(function () {
     addBubbles() //todo dont need to reset bubbles
   })
-  gui.add(guiSettings, 'deflation', 0.9, 2).step(0.05).onChange(function () {
+  gui.add(guiSettings, 'deflation', 1.3, 2).step(0.05).onChange(function () {
     addBubbles()
   })
   gui.add(guiSettings, 'download obj') // Button
